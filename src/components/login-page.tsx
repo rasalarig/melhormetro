@@ -16,7 +16,7 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [googleMessage, setGoogleMessage] = useState(false);
+
 
   useEffect(() => {
     if (!loading && user) {
@@ -50,8 +50,7 @@ export function LoginPage() {
   };
 
   const handleGoogleClick = () => {
-    setGoogleMessage(true);
-    setTimeout(() => setGoogleMessage(false), 4000);
+    window.location.href = '/api/auth/google';
   };
 
   if (loading) {
@@ -180,13 +179,6 @@ export function LoginPage() {
             Entrar com Google
           </Button>
 
-          {googleMessage && (
-            <div className="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <p className="text-sm text-emerald-400">
-                Em breve! Use o login por email por enquanto.
-              </p>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

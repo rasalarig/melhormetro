@@ -73,20 +73,40 @@ export async function logout() {
   });
 }
 
-export async function upsertUser(email: string, name: string): Promise<User> {
+export async function upsertUser(email: string, name: string, avatarUrl?: string, provider?: string): Promise<User> {
   const existing = await getOne('SELECT * FROM users WHERE email = $1', [email]) as User | null;
 
   if (existing) {
+    const updates: string[] = [];
+    const values: (string | number)[] = [];
+    let paramIndex = 1;
+
     if (name && name !== existing.name) {
-      await query('UPDATE users SET name = $1 WHERE id = $2', [name, existing.id]);
-      existing.name = name;
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (avatarUrl && avatarUrl !== existing.avatar_url) {
+      updates.push(`avatar_url = $${paramIndex++}`);
+      values.push(avatarUrl);
+    }
+    if (provider && provider !== existing.provider) {
+      updates.push(`provider = $${paramIndex++}`);
+      values.push(provider);
+    }
+
+    if (updates.length > 0) {
+      values.push(existing.id);
+      await query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
+      if (name) existing.name = name;
+      if (avatarUrl) existing.avatar_url = avatarUrl;
+      if (provider) existing.provider = provider;
     }
     return existing;
   }
 
   const result = await getOne(
-    'INSERT INTO users (name, email, provider) VALUES ($1, $2, $3) RETURNING id',
-    [name, email, 'local']
+    'INSERT INTO users (name, email, avatar_url, provider) VALUES ($1, $2, $3, $4) RETURNING id',
+    [name, email, avatarUrl || null, provider || 'local']
   );
 
   const user = await getOne('SELECT * FROM users WHERE id = $1', [result.id]) as User;
