@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Share2, Eye, Maximize } from "lucide-react";
 import { LikeButton } from "@/components/like-button";
+import { useEngagement } from "@/hooks/use-engagement";
 
 interface PropertyImage {
   id: number;
@@ -56,6 +57,9 @@ export function PropertyReel({
   const [isVisible, setIsVisible] = useState(false);
   const reelRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { trackEvent } = useEngagement(id);
+  const halfTrackedRef = useRef(false);
+  const completeTrackedRef = useRef(false);
 
   const imageUrls = images
     .filter((img) => img.filename)
@@ -95,7 +99,32 @@ export function PropertyReel({
     };
   }, [isVisible, hasMultipleImages, imageUrls.length]);
 
+  // Engagement view tracking
+  useEffect(() => {
+    if (isVisible) {
+      const halfTimer = setTimeout(() => {
+        if (!halfTrackedRef.current) {
+          halfTrackedRef.current = true;
+          trackEvent('view_half', 5);
+        }
+      }, 5000);
+
+      const completeTimer = setTimeout(() => {
+        if (!completeTrackedRef.current) {
+          completeTrackedRef.current = true;
+          trackEvent('view_complete', 10);
+        }
+      }, 10000);
+
+      return () => {
+        clearTimeout(halfTimer);
+        clearTimeout(completeTimer);
+      };
+    }
+  }, [isVisible, trackEvent]);
+
   const handleShare = useCallback(async () => {
+    trackEvent('share');
     if (navigator.share) {
       try {
         await navigator.share({
@@ -111,7 +140,7 @@ export function PropertyReel({
         `${window.location.origin}/imoveis/${id}`
       );
     }
-  }, [title, price, id]);
+  }, [title, price, id, trackEvent]);
 
   const whatsappMessage = encodeURIComponent(
     `Olá! Tenho interesse no imóvel: ${title} - ${formatPrice(price)}. Link: ${typeof window !== "undefined" ? window.location.origin : ""}/imoveis/${id}`
@@ -220,6 +249,7 @@ export function PropertyReel({
           rel="noopener noreferrer"
           className="flex flex-col items-center gap-1 group"
           aria-label="WhatsApp"
+          onClick={() => trackEvent('click_whatsapp')}
         >
           <div className="w-11 h-11 rounded-full bg-green-600 flex items-center justify-center hover:bg-green-500 transition-colors">
             <svg
@@ -249,6 +279,7 @@ export function PropertyReel({
           href={`/imoveis/${id}`}
           className="flex flex-col items-center gap-1 group"
           aria-label="Ver detalhes"
+          onClick={() => trackEvent('click_details')}
         >
           <div className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors">
             <Eye className="w-5 h-5 text-white" />

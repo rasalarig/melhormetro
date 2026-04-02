@@ -41,6 +41,17 @@ export function LikeButton({
 
     setAnimating(true);
     setTimeout(() => setAnimating(false), 300);
+
+    // Track engagement event
+    fetch('/api/engagement', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        property_id: propertyId,
+        event_type: favorited ? 'unlike' : 'like',
+      }),
+    }).catch(() => {});
+
     await toggle();
   };
 
