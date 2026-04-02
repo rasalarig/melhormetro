@@ -120,29 +120,39 @@ export function SearchPageClient() {
         <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto mb-6">
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
-            <div className="relative flex items-center bg-card border border-border rounded-2xl overflow-hidden">
-              <Search className="w-5 h-5 text-muted-foreground ml-4 shrink-0" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Descreva o imovel que voce procura..."
-                className="flex-1 bg-transparent px-4 py-4 text-base outline-none placeholder:text-muted-foreground/60"
-              />
-              <Button
-                type="submit"
-                disabled={loading}
-                className="m-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl px-6"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Buscar
-                  </>
-                )}
-              </Button>
+            <div className="relative flex flex-col bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="flex items-start">
+                <Search className="w-5 h-5 text-muted-foreground ml-4 mt-4 shrink-0" />
+                <textarea
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSearch(e);
+                    }
+                  }}
+                  placeholder="Descreva o imovel que voce procura..."
+                  rows={3}
+                  className="flex-1 bg-transparent px-4 py-4 text-base outline-none placeholder:text-muted-foreground/60 resize-none"
+                />
+              </div>
+              <div className="flex justify-end px-2 pb-2">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl px-6"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Buscar
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </form>
