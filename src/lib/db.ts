@@ -1,30 +1,60 @@
 import { Pool } from 'pg';
-import dns from 'dns';
+import { resolve4 } from 'dns/promises';
 
-// Force IPv4 to avoid ENETUNREACH on hosts that resolve to IPv6
-dns.setDefaultResultOrder('ipv4first');
+let pool: Pool | null = null;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+async function getPool(): Promise<Pool> {
+  if (pool) return pool;
+
+  const connectionString = process.env.DATABASE_URL || '';
+
+  // Extract host from connection string to resolve IPv4
+  const hostMatch = connectionString.match(/@([^:\/]+)/);
+
+  if (hostMatch) {
+    try {
+      const addresses = await resolve4(hostMatch[1]);
+      if (addresses.length > 0) {
+        // Replace hostname with IPv4 address to avoid IPv6 issues on Render
+        const ipv4Url = connectionString.replace(hostMatch[1], addresses[0]);
+        pool = new Pool({
+          connectionString: ipv4Url,
+          ssl: { rejectUnauthorized: false },
+        });
+        return pool;
+      }
+    } catch {
+      // Fall through to default connection
+    }
+  }
+
+  pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+  });
+  return pool;
+}
 
 export async function query(text: string, params?: unknown[]) {
-  return pool.query(text, params);
+  const p = await getPool();
+  return p.query(text, params);
 }
 
 export async function getOne(text: string, params?: unknown[]) {
-  const result = await pool.query(text, params);
+  const p = await getPool();
+  const result = await p.query(text, params);
   return result.rows[0] || null;
 }
 
 export async function getAll(text: string, params?: unknown[]) {
-  const result = await pool.query(text, params);
+  const p = await getPool();
+  const result = await p.query(text, params);
   return result.rows;
 }
 
 export async function initDB() {
-  await pool.query(`
+  const p = await getPool();
+  await p.query(`
     CREATE TABLE IF NOT EXISTS properties (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
@@ -141,5 +171,3 @@ export async function initDB() {
 
 // Call initDB on module load
 initDB().catch(console.error);
-
-export default pool;
