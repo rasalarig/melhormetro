@@ -1,4 +1,8 @@
 import { Pool } from 'pg';
+import dns from 'dns';
+
+// Force IPv4 to avoid ENETUNREACH on hosts that resolve to IPv6
+dns.setDefaultResultOrder('ipv4first');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
