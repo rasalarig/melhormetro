@@ -1,5 +1,18 @@
 import { query, getOne } from './db';
 
+const sampleImages: Record<number, { url: string; original_name: string; is_cover: boolean }[]> = {
+  0: [
+    { url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=1200&fit=crop', original_name: 'condominio-1.jpg', is_cover: true },
+    { url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=1200&fit=crop', original_name: 'condominio-2.jpg', is_cover: false },
+    { url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=1200&fit=crop', original_name: 'condominio-3.jpg', is_cover: false },
+  ],
+  1: [
+    { url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=1200&fit=crop', original_name: 'vista-1.jpg', is_cover: true },
+    { url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=1200&fit=crop', original_name: 'vista-2.jpg', is_cover: false },
+    { url: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=1200&fit=crop', original_name: 'vista-3.jpg', is_cover: false },
+  ],
+};
+
 const sampleProperties = [
   {
     title: 'Terreno 300m\u00b2 em Condom\u00ednio Fechado - Itapetininga',
@@ -77,18 +90,33 @@ const sampleProperties = [
   },
 ];
 
-export async function seed() {
+export async function seed(force = false) {
   const countRow = await getOne('SELECT COUNT(*) as count FROM properties') as { count: string };
   const count = parseInt(countRow.count, 10);
 
-  if (count > 0) {
+  if (count > 0 && !force) {
     return { message: 'Database already seeded', count };
   }
 
-  for (const property of sampleProperties) {
-    await query(
+  // Clear existing data when force re-seeding
+  if (force && count > 0) {
+    await query('DELETE FROM campaign_recipients');
+    await query('DELETE FROM campaigns');
+    await query('DELETE FROM alert_matches');
+    await query('DELETE FROM search_alerts');
+    await query('DELETE FROM engagement_events');
+    await query('DELETE FROM favorites');
+    await query('DELETE FROM leads');
+    await query('DELETE FROM property_images');
+    await query('DELETE FROM properties');
+  }
+
+  for (let i = 0; i < sampleProperties.length; i++) {
+    const property = sampleProperties[i];
+    const result = await query(
       `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, latitude, longitude)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       RETURNING id`,
       [
         property.title,
         property.description,
@@ -105,6 +133,16 @@ export async function seed() {
         property.longitude,
       ]
     );
+
+    const propertyId = result.rows[0].id;
+    const images = sampleImages[i] || [];
+    for (const img of images) {
+      await query(
+        `INSERT INTO property_images (property_id, filename, original_name, is_cover)
+         VALUES ($1, $2, $3, $4)`,
+        [propertyId, img.url, img.original_name, img.is_cover ? 1 : 0]
+      );
+    }
   }
 
   return { message: 'Database seeded successfully', count: sampleProperties.length };

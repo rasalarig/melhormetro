@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
-    <div className="bg-black">
+    <div className="fixed inset-0 bg-black z-40">
       <ReelsFeed />
     </div>
   );

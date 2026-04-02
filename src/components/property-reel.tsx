@@ -63,7 +63,7 @@ export function PropertyReel({
 
   const imageUrls = images
     .filter((img) => img.filename)
-    .map((img) => `/uploads/${img.filename}`);
+    .map((img) => img.filename.startsWith('http') ? img.filename : `/uploads/${img.filename}`);
 
   const hasMultipleImages = imageUrls.length > 1;
 
@@ -149,8 +149,7 @@ export function PropertyReel({
   return (
     <div
       ref={reelRef}
-      className="reel-item relative w-full overflow-hidden bg-black"
-      style={{ height: "100dvh" }}
+      className="reel-item relative w-full h-full overflow-hidden bg-black"
     >
       {/* Background Images with Crossfade */}
       {imageUrls.length > 0 ? (

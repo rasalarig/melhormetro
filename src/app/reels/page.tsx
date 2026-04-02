@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function ReelsPage() {
   return (
-    <div className="pt-16 bg-black">
+    <div className="bg-black">
       <ReelsFeed />
     </div>
   );

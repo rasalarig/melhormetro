@@ -90,36 +90,40 @@ export function ReelsFeed() {
   }
 
   return (
-    <div
-      className="reels-container overflow-y-scroll bg-black"
-      style={{
-        height: "100dvh",
-        scrollSnapType: "y mandatory",
-        scrollBehavior: "smooth",
-      }}
-    >
-      {properties.map((property) => (
+    <div className="h-[100dvh] bg-black flex items-center justify-center overflow-hidden">
+      {/* Phone-shaped wrapper on desktop, fullscreen on mobile */}
+      <div
+        className="relative w-full h-full md:h-full md:aspect-[9/16] md:max-w-[calc(100dvh*9/16)] md:rounded-3xl md:border md:border-white/10 md:shadow-2xl md:overflow-hidden"
+      >
         <div
-          key={property.id}
+          className="reels-container scrollbar-hide overflow-y-scroll h-full w-full"
           style={{
-            height: "100dvh",
-            scrollSnapAlign: "start",
+            scrollSnapType: "y mandatory",
+            scrollBehavior: "smooth",
           }}
         >
-          <PropertyReel
-            id={property.id}
-            title={property.title}
-            description={property.description}
-            price={property.price}
-            area={property.area}
-            type={property.type}
-            city={property.city}
-            state={property.state}
-            characteristics={property.characteristics}
-            images={property.images}
-          />
+          {properties.map((property) => (
+            <div
+              key={property.id}
+              className="h-full w-full"
+              style={{ scrollSnapAlign: "start" }}
+            >
+              <PropertyReel
+                id={property.id}
+                title={property.title}
+                description={property.description}
+                price={property.price}
+                area={property.area}
+                type={property.type}
+                city={property.city}
+                state={property.state}
+                characteristics={property.characteristics}
+                images={property.images}
+              />
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
