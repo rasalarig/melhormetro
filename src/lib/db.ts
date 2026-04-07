@@ -132,6 +132,18 @@ export async function initDB() {
       sent_at TIMESTAMPTZ DEFAULT NOW(),
       opened_at TIMESTAMPTZ
     );
+
+    CREATE TABLE IF NOT EXISTS sellers (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT NOT NULL,
+      city TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS seller_id INTEGER REFERENCES sellers(id) ON DELETE SET NULL;
   `);
 }
 

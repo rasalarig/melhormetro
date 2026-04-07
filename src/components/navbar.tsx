@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Menu, X, Users, LogIn, LogOut, Heart, Bell, Film } from "lucide-react";
+import { Search, Plus, Menu, X, Users, LogIn, LogOut, Heart, Bell, Film, DollarSign } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 
@@ -107,6 +107,13 @@ export function Navbar() {
             </>
           )}
 
+          <Link href="/vender">
+            <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
+              <DollarSign className="w-3.5 h-3.5 mr-1" />
+              Quero Vender
+            </Button>
+          </Link>
+
           <Link href="/admin">
             <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10">
               <Plus className="w-3.5 h-3.5 mr-1" />
@@ -180,6 +187,9 @@ export function Navbar() {
             <Link href="/imoveis" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Imoveis</Link>
             <Link href="/busca" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Busca IA</Link>
             <Link href="/admin/leads" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Leads</Link>
+            <Link href="/vender" className="text-sm py-2 flex items-center gap-2 text-emerald-500 font-medium" onClick={() => setMobileOpen(false)}>
+              <DollarSign className="w-3.5 h-3.5" /> Quero Vender
+            </Link>
             <Link href="/admin" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Cadastrar Imovel</Link>
 
             {!loading && user && (

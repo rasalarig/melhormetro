@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, Search, Heart, Bell, User } from "lucide-react";
+import { Film, Search, Heart, DollarSign, User } from "lucide-react";
 
 const tabs = [
   { href: "/", icon: Film, label: "Reels" },
   { href: "/busca", icon: Search, label: "Busca IA" },
+  { href: "/vender", icon: DollarSign, label: "Vender" },
   { href: "/favoritos", icon: Heart, label: "Favoritos" },
-  { href: "/alertas", icon: Bell, label: "Alertas" },
   { href: "/login", icon: User, label: "Perfil" },
 ];
 
