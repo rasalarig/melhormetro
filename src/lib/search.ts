@@ -51,13 +51,59 @@ function getSearchableText(property: Property): string {
   return normalize(parts.join(" "));
 }
 
+// Minimum score threshold for local search results
+const LOCAL_SEARCH_MIN_SCORE = 15;
+
+// Minimum score threshold for AI search results
+const AI_SEARCH_MIN_SCORE = 50;
+
+// Extract negative criteria from the query (words/phrases the user wants to EXCLUDE)
+function extractNegativeCriteria(normalizedQuery: string): string[] {
+  const negatives: string[] = [];
+
+  // Patterns: "fora de X", "sem X", "nao X", "nao quero X", "sem ser X"
+  const patterns = [
+    /fora de\s+(\S+(?:\s+\S+)?)/g,
+    /sem\s+(\S+(?:\s+\S+)?)/g,
+    /nao\s+(?:quero\s+)?(\S+(?:\s+\S+)?)/g,
+    /sem ser\s+(\S+(?:\s+\S+)?)/g,
+    /excluir\s+(\S+(?:\s+\S+)?)/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(normalizedQuery)) !== null) {
+      negatives.push(normalize(match[1]));
+    }
+  }
+
+  return negatives;
+}
+
 // Smart local search with scoring
 export async function localSearch(queryText: string): Promise<SearchResult[]> {
   const properties = await getAll(
     "SELECT * FROM properties WHERE status = 'active'"
   ) as Property[];
   const normalizedQuery = normalize(queryText);
-  const queryWords = normalizedQuery.split(/\s+/).filter((w) => w.length > 2);
+
+  // Extract negative criteria first
+  const negativeCriteria = extractNegativeCriteria(normalizedQuery);
+
+  // Remove negative phrases from query to get positive-only words
+  let positiveQuery = normalizedQuery;
+  const negPhrasePatterns = [
+    /fora de\s+\S+(?:\s+\S+)?/g,
+    /sem\s+\S+(?:\s+\S+)?/g,
+    /nao\s+(?:quero\s+)?\S+(?:\s+\S+)?/g,
+    /sem ser\s+\S+(?:\s+\S+)?/g,
+    /excluir\s+\S+(?:\s+\S+)?/g,
+  ];
+  for (const pattern of negPhrasePatterns) {
+    positiveQuery = positiveQuery.replace(pattern, " ");
+  }
+
+  const queryWords = positiveQuery.split(/\s+/).filter((w) => w.length > 2);
 
   // Common synonyms/related terms in Portuguese real estate
   const synonyms: Record<string, string[]> = {
@@ -94,8 +140,39 @@ export async function localSearch(queryText: string): Promise<SearchResult[]> {
     const searchableText = getSearchableText(property);
     const chars = JSON.parse(property.characteristics || "[]") as string[];
     const normalizedChars = chars.map(normalize);
+    const details = JSON.parse(property.details || "{}");
     let score = 0;
     const matchReasons: string[] = [];
+    let excluded = false;
+
+    // NEGATIVE CRITERIA CHECK: if any negative keyword is found in the property, exclude it
+    for (const neg of negativeCriteria) {
+      const negNorm = normalize(neg);
+      // Check in searchable text (title, description, characteristics, details, etc.)
+      if (searchableText.includes(negNorm)) {
+        excluded = true;
+        break;
+      }
+      // Special handling for "condominio" - also check details.gated_community
+      if (negNorm.includes("condominio")) {
+        if (
+          details.gated_community === true ||
+          details.gated_community === "true" ||
+          details.gated_community === "sim" ||
+          normalizedChars.some(
+            (c) => c.includes("condominio") || c.includes("fechado")
+          ) ||
+          normalize(property.neighborhood || "").includes("condominio")
+        ) {
+          excluded = true;
+          break;
+        }
+      }
+    }
+
+    if (excluded) {
+      continue; // Skip this property entirely
+    }
 
     // Direct word matching
     for (const word of queryWords) {
@@ -183,7 +260,8 @@ export async function localSearch(queryText: string): Promise<SearchResult[]> {
     // Deduplicate reasons
     const uniqueReasons = Array.from(new Set(matchReasons));
 
-    if (score > 0) {
+    // Only include results above minimum score threshold
+    if (score >= LOCAL_SEARCH_MIN_SCORE) {
       results.push({ property, score, matchReasons: uniqueReasons });
     }
   }
@@ -232,22 +310,38 @@ export async function openaiSearch(queryText: string): Promise<SearchResult[]> {
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.3,
+      temperature: 0.1,
       response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
-          content: `Voce e um assistente de busca imobiliaria. Analise os imoveis disponiveis e determine quais combinam com o pedido do usuario.
+          content: `Voce e um assistente de busca imobiliaria. Analise a busca do usuario e retorne os imoveis que correspondem.
 
-REGRAS:
-1. EXCLUSOES EXPLICITAS: se o usuario disse "fora de condominio", "sem piscina", "nao quero X" — EXCLUA imoveis que tenham essa caracteristica. So exclua o que o usuario EXPLICITAMENTE pediu para excluir.
-2. CRITERIOS POSITIVOS: "casa" = tipo casa, "terrea" = caracteristica terrea, "3 quartos" = bedrooms 3, etc. Inclua imoveis que atendem os criterios positivos.
-3. NAO invente exclusoes que o usuario nao pediu. Se ele disse "casa fora de condominio", inclua casas com piscina, com garagem, etc — so exclua condominio.
-4. Se um imovel atende os criterios positivos e nao viola nenhuma exclusao, INCLUA com score proporcional.
+REGRAS DE PONTUACAO:
+
+1. TIPO DO IMOVEL (criterio principal):
+   - Se o usuario busca "casa", retorne TODOS os imoveis com type="casa" com score 85+
+   - Se o usuario busca "terreno", retorne TODOS os imoveis com type="terreno" com score 85+
+   - Se a busca e apenas o tipo (ex: so "casa" ou so "terreno"), TODOS desse tipo recebem score 90.
+
+2. CRITERIOS ADICIONAIS (ajustam o score):
+   - "terrea" = verifique se tem "terrea" ou "térrea" nas characteristics. Se nao tem, reduza score em 30.
+   - "X quartos" = verifique details.bedrooms. Se nao bate, reduza score em 30.
+   - "piscina" ou "com piscina" = verifique se tem "piscina" nas characteristics. Se nao tem, reduza score em 30.
+   - "com X" = verifique se X existe nas characteristics, description ou details. Se nao, reduza score em 20.
+
+3. CRITERIOS NEGATIVOS (ABSOLUTOS - score 0 se violado):
+   - "fora de condominio" ou "sem condominio" = EXCLUIR (score 0) qualquer imovel que tenha "condominio" ou "condomínio" no title, description, characteristics, neighborhood OU que tenha details.gated_community=true
+   - "sem piscina" = EXCLUIR (score 0) qualquer imovel com piscina
+   - "sem X" / "fora de X" / "nao quero X" = EXCLUIR (score 0) qualquer imovel que tenha X
+   - Criterios negativos sao ABSOLUTOS: qualquer violacao = score 0, nao incluir.
+
+4. RESULTADO VAZIO E VALIDO:
+   - Se nenhum imovel corresponde, retorne { "results": [] }
+
 5. Responda em portugues brasileiro.
 
-Retorne APENAS JSON: { "results": [{ "id": number, "score": 0-100, "reasons": ["razao 1", "razao 2"] }] }
-Se nenhum imovel combinar, retorne { "results": [] }.`,
+Retorne APENAS JSON: { "results": [{ "id": number, "score": 50-100, "reasons": ["razao 1", "razao 2"] }] }`,
         },
         {
           role: "user",
@@ -267,6 +361,7 @@ ${JSON.stringify(propertySummaries, null, 2)}`,
     };
 
     return parsed.results
+      .filter((r) => r.score >= AI_SEARCH_MIN_SCORE)
       .map((r) => {
         const property = properties.find((p) => p.id === r.id);
         if (!property) return null;
@@ -325,20 +420,36 @@ export async function aiSearch(queryText: string): Promise<SearchResult[]> {
       messages: [
         {
           role: "user",
-          content: `Voce e um assistente de busca imobiliaria PRECISO e ASSERTIVO. O usuario busca:
+          content: `Voce e um assistente de busca imobiliaria. Analise a busca do usuario e retorne os imoveis que correspondem.
 
-"${queryText}"
+Busca do usuario: "${queryText}"
 
-REGRAS OBRIGATORIAS:
-1. EXCLUSOES sao absolutas. "fora de condominio" = EXCLUIR qualquer imovel em condominio. "sem piscina" = EXCLUIR imoveis com piscina. Imoveis que violam exclusoes NAO aparecem nos resultados.
-2. Retorne SOMENTE imoveis que atendem TODOS os criterios positivos E nao violam NENHUM criterio negativo.
-3. Prefira PRECISAO a QUANTIDADE. Se so 1 imovel combina, retorne so 1. Se nenhum combina, retorne array vazio.
-4. Score alto (80-100) = atende todos os criterios. NAO inclua imoveis com score abaixo de 50.
+REGRAS DE PONTUACAO:
+
+1. TIPO DO IMOVEL (criterio principal):
+   - Se o usuario busca "casa", retorne TODOS os imoveis com type="casa" com score 85+
+   - Se o usuario busca "terreno", retorne TODOS os imoveis com type="terreno" com score 85+
+   - Se a busca e apenas o tipo (ex: so "casa" ou so "terreno"), TODOS desse tipo recebem score 90.
+
+2. CRITERIOS ADICIONAIS (ajustam o score):
+   - "terrea" = verifique se tem "terrea" ou "térrea" nas characteristics. Se nao tem, reduza score em 30.
+   - "X quartos" = verifique details.bedrooms. Se nao bate, reduza score em 30.
+   - "piscina" ou "com piscina" = verifique se tem "piscina" nas characteristics. Se nao tem, reduza score em 30.
+   - "com X" = verifique se X existe nas characteristics, description ou details. Se nao, reduza score em 20.
+
+3. CRITERIOS NEGATIVOS (ABSOLUTOS - score 0 se violado):
+   - "fora de condominio" ou "sem condominio" = EXCLUIR (score 0) qualquer imovel que tenha "condominio" ou "condomínio" no title, description, characteristics, neighborhood OU que tenha details.gated_community=true
+   - "sem piscina" = EXCLUIR (score 0) qualquer imovel com piscina
+   - "sem X" / "fora de X" / "nao quero X" = EXCLUIR (score 0) qualquer imovel que tenha X
+   - Criterios negativos sao ABSOLUTOS: qualquer violacao = score 0, nao incluir.
+
+4. RESULTADO VAZIO E VALIDO:
+   - Se nenhum imovel corresponde, retorne []
 
 Imoveis disponiveis:
 ${JSON.stringify(propertySummaries, null, 2)}
 
-Retorne APENAS um JSON array: [{ "id": number, "score": 0-100, "reasons": ["razao 1"] }]
+Retorne APENAS um JSON array (sem markdown, sem texto extra): [{ "id": number, "score": 50-100, "reasons": ["razao 1"] }]
 Se nenhum combinar, retorne [].`,
         },
       ],
@@ -347,13 +458,21 @@ Se nenhum combinar, retorne [].`,
     const content = response.content[0];
     if (content.type !== "text") return localSearch(queryText);
 
-    const aiResults = JSON.parse(content.text) as Array<{
+    // Extract JSON from response (handle potential markdown code blocks)
+    let jsonText = content.text.trim();
+    const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1].trim();
+    }
+
+    const aiResults = JSON.parse(jsonText) as Array<{
       id: number;
       score: number;
       reasons: string[];
     }>;
 
     return aiResults
+      .filter((r) => r.score >= AI_SEARCH_MIN_SCORE)
       .map((r) => {
         const property = properties.find((p) => p.id === r.id);
         if (!property) return null;
