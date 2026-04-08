@@ -229,24 +229,17 @@ export function PropertyReel({
       {/* Dark gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 z-10" />
 
-      {/* Counter text - top right */}
-      {hasMultipleImages && (
-        <div className="absolute top-4 right-4 z-30 bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-1 text-xs text-white/80 font-medium">
-          {currentImageIndex + 1}/{imageUrls.length}
-        </div>
-      )}
-
       {/* Dot indicators - bottom of image area */}
       {hasMultipleImages && (
-        <div className="absolute bottom-[220px] left-1/2 -translate-x-1/2 z-30 flex gap-2">
+        <div className="absolute bottom-[180px] left-1/2 -translate-x-1/2 z-30 flex gap-1.5">
           {imageUrls.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentImageIndex(index)}
-              className={`rounded-full transition-all duration-300 ${
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
                 index === currentImageIndex
-                  ? "w-7 h-2.5 bg-emerald-400"
-                  : "w-2.5 h-2.5 bg-white/50 hover:bg-white/70"
+                  ? "bg-white"
+                  : "bg-white/40"
               }`}
               aria-label={`Ir para imagem ${index + 1}`}
             />
@@ -259,14 +252,14 @@ export function PropertyReel({
         <>
           <button
             onClick={goToPrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm hidden md:flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
             aria-label="Imagem anterior"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm hidden md:flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
             aria-label="Pr\u00f3xima imagem"
           >
             <ChevronRight className="w-5 h-5" />

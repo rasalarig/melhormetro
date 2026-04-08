@@ -64,37 +64,40 @@ export function BottomTabBar() {
   const tabs = !loading && user ? authedTabs : publicTabs;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-border/40 safe-area-bottom relative">
+    <>
       {showProfile && user && (
-        <div
-          ref={profileRef}
-          className="absolute bottom-full left-0 right-0 mb-0 p-4 bg-card/95 backdrop-blur-xl border-t border-border/40 animate-in slide-in-from-bottom-2"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            {user.avatar_url ? (
-              <img src={user.avatar_url} alt={user.name} className="w-10 h-10 rounded-full" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-medium">
-                {user.name?.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <p className="font-medium text-sm text-foreground">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={async () => {
-              await logout();
-              setShowProfile(false);
-            }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium"
+        <div className="fixed bottom-16 left-0 right-0 z-50 md:hidden">
+          <div
+            ref={profileRef}
+            className="p-4 bg-card/95 backdrop-blur-xl border-t border-border/40"
           >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </button>
+            <div className="flex items-center gap-3 mb-4">
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-10 h-10 rounded-full" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-medium">
+                  {user.name?.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="font-medium text-sm text-foreground">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                await logout();
+                setShowProfile(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </button>
+          </div>
         </div>
       )}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-border/40 safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -137,5 +140,6 @@ export function BottomTabBar() {
         })}
       </div>
     </nav>
+    </>
   );
 }
