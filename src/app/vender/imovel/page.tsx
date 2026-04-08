@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,13 @@ import {
   CheckCircle,
   Home,
   ImageIcon,
+  Upload,
+  Link2,
+  Video,
+  X,
+  Play,
 } from "lucide-react";
+import Link from "next/link";
 
 const PROPERTY_TYPES = [
   { value: "terreno", label: "Terreno" },
@@ -56,7 +62,20 @@ const inputClass =
 
 const labelClass = "block text-sm font-medium text-foreground mb-1.5";
 
-interface ImageEntry {
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+interface MediaEntry {
+  url: string;
+  file?: File;
+  preview?: string;
+  is_cover: boolean;
+  type: "image" | "video";
+  uploading?: boolean;
+}
+
+interface LinkEntry {
   url: string;
   is_cover: boolean;
 }
@@ -64,8 +83,7 @@ interface ImageEntry {
 export default function CadastrarImovelPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [checkingSeller, setCheckingSeller] = useState(true);
-  const [sellerId, setSellerId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state - basic info
   const [title, setTitle] = useState("");
@@ -89,39 +107,36 @@ export default function CadastrarImovelPage() {
   // Characteristics
   const [selectedChars, setSelectedChars] = useState<string[]>([]);
 
-  // Images (URL-based)
-  const [imageEntries, setImageEntries] = useState<ImageEntry[]>([
+  // Media - tab toggle between upload and link
+  const [mediaTab, setMediaTab] = useState<"upload" | "link">("upload");
+  const [mediaEntries, setMediaEntries] = useState<MediaEntry[]>([]);
+  const [linkEntries, setLinkEntries] = useState<LinkEntry[]>([
     { url: "", is_cover: true },
   ]);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<{ id: number } | null>(null);
 
-  // Check if user is a registered seller
+  // Redirect if not logged in
   useEffect(() => {
     if (authLoading) return;
-
     if (!user) {
-      router.replace("/vender");
-      return;
+      router.replace("/login");
     }
-
-    fetch("/api/sellers")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.seller) {
-          setSellerId(data.seller.id);
-          setCheckingSeller(false);
-        } else {
-          router.replace("/vender");
-        }
-      })
-      .catch(() => {
-        router.replace("/vender");
-      });
   }, [user, authLoading, router]);
+
+  // Cleanup preview URLs
+  useEffect(() => {
+    return () => {
+      mediaEntries.forEach((entry) => {
+        if (entry.preview) URL.revokeObjectURL(entry.preview);
+      });
+    };
+  }, []);
 
   const showDetails =
     propertyType === "casa" || propertyType === "apartamento";
@@ -132,14 +147,14 @@ export default function CadastrarImovelPage() {
     );
   }
 
-  function addImageField() {
-    setImageEntries((prev) => [...prev, { url: "", is_cover: false }]);
+  // --- Link entries (paste URL mode) ---
+  function addLinkField() {
+    setLinkEntries((prev) => [...prev, { url: "", is_cover: false }]);
   }
 
-  function removeImageField(index: number) {
-    setImageEntries((prev) => {
+  function removeLinkField(index: number) {
+    setLinkEntries((prev) => {
       const next = prev.filter((_, i) => i !== index);
-      // If we removed the cover, make the first one cover
       if (next.length > 0 && !next.some((e) => e.is_cover)) {
         next[0].is_cover = true;
       }
@@ -147,16 +162,159 @@ export default function CadastrarImovelPage() {
     });
   }
 
-  function updateImageUrl(index: number, url: string) {
-    setImageEntries((prev) =>
+  function updateLinkUrl(index: number, url: string) {
+    setLinkEntries((prev) =>
       prev.map((e, i) => (i === index ? { ...e, url } : e))
     );
   }
 
-  function setCover(index: number) {
-    setImageEntries((prev) =>
+  function setLinkCover(index: number) {
+    setLinkEntries((prev) =>
       prev.map((e, i) => ({ ...e, is_cover: i === index }))
     );
+  }
+
+  // --- File upload entries ---
+  const addFiles = useCallback((files: FileList | File[]) => {
+    const newEntries: MediaEntry[] = [];
+
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`Arquivo ${file.name} excede o limite de 10MB`);
+        continue;
+      }
+
+      const isImage = ACCEPTED_IMAGE_TYPES.includes(file.type);
+      const isVideo = ACCEPTED_VIDEO_TYPES.includes(file.type);
+
+      if (!isImage && !isVideo) {
+        setError(`Tipo de arquivo nao permitido: ${file.name}`);
+        continue;
+      }
+
+      const preview = isImage ? URL.createObjectURL(file) : undefined;
+
+      newEntries.push({
+        url: "",
+        file,
+        preview,
+        is_cover: false,
+        type: isImage ? "image" : "video",
+      });
+    }
+
+    setMediaEntries((prev) => {
+      const combined = [...prev, ...newEntries];
+      // If none is marked as cover, set the first image as cover
+      if (combined.length > 0 && !combined.some((e) => e.is_cover)) {
+        const firstImage = combined.findIndex((e) => e.type === "image");
+        if (firstImage >= 0) {
+          combined[firstImage].is_cover = true;
+        } else {
+          combined[0].is_cover = true;
+        }
+      }
+      return combined;
+    });
+  }, []);
+
+  function removeMediaEntry(index: number) {
+    setMediaEntries((prev) => {
+      const removed = prev[index];
+      if (removed.preview) URL.revokeObjectURL(removed.preview);
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length > 0 && !next.some((e) => e.is_cover)) {
+        next[0].is_cover = true;
+      }
+      return next;
+    });
+  }
+
+  function setMediaCover(index: number) {
+    setMediaEntries((prev) =>
+      prev.map((e, i) => ({ ...e, is_cover: i === index }))
+    );
+  }
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      if (e.dataTransfer.files?.length) {
+        addFiles(e.dataTransfer.files);
+      }
+    },
+    [addFiles]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files?.length) {
+        addFiles(e.target.files);
+      }
+      // Reset input so same file can be selected again
+      e.target.value = "";
+    },
+    [addFiles]
+  );
+
+  async function uploadFiles(): Promise<{ url: string; is_cover: boolean }[]> {
+    const filesToUpload = mediaEntries.filter((e) => e.file);
+    if (filesToUpload.length === 0) return [];
+
+    setUploadProgress("Enviando arquivos...");
+
+    const formData = new FormData();
+    for (const entry of filesToUpload) {
+      formData.append("files", entry.file!);
+    }
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Falha no upload dos arquivos");
+    }
+
+    const data = await res.json();
+    const uploadedFiles = data.files as {
+      url: string;
+      originalName: string;
+      type: string;
+    }[];
+
+    // Map uploaded URLs back to entries with is_cover info
+    const results: { url: string; is_cover: boolean }[] = [];
+    let uploadIndex = 0;
+    for (const entry of mediaEntries) {
+      if (entry.file) {
+        results.push({
+          url: uploadedFiles[uploadIndex].url,
+          is_cover: entry.is_cover,
+        });
+        uploadIndex++;
+      }
+    }
+
+    setUploadProgress("");
+    return results;
   }
 
   function formatPriceDisplay(value: string): string {
@@ -188,24 +346,33 @@ export default function CadastrarImovelPage() {
       return;
     }
 
-    if (!sellerId) {
-      setError("Vendedor nao encontrado. Cadastre-se primeiro.");
-      return;
-    }
-
-    const validImages = imageEntries.filter((e) => e.url.trim());
-
-    const details: Record<string, number> = {};
-    if (showDetails) {
-      if (bedrooms) details.bedrooms = Number(bedrooms);
-      if (bathrooms) details.bathrooms = Number(bathrooms);
-      if (suites) details.suites = Number(suites);
-      if (parking) details.parking = Number(parking);
-    }
-
     setSubmitting(true);
 
     try {
+      let allImageUrls: { url: string; is_cover: boolean }[] = [];
+
+      // Upload files if in upload mode
+      if (mediaTab === "upload" && mediaEntries.length > 0) {
+        allImageUrls = await uploadFiles();
+      }
+
+      // Add link entries if in link mode
+      if (mediaTab === "link") {
+        const validLinks = linkEntries.filter((e) => e.url.trim());
+        allImageUrls = [
+          ...allImageUrls,
+          ...validLinks.map((e) => ({ url: e.url.trim(), is_cover: e.is_cover })),
+        ];
+      }
+
+      const details: Record<string, number> = {};
+      if (showDetails) {
+        if (bedrooms) details.bedrooms = Number(bedrooms);
+        if (bathrooms) details.bathrooms = Number(bathrooms);
+        if (suites) details.suites = Number(suites);
+        if (parking) details.parking = Number(parking);
+      }
+
       const res = await fetch("/api/properties/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -221,8 +388,7 @@ export default function CadastrarImovelPage() {
           neighborhood: neighborhood.trim() || null,
           characteristics: selectedChars.length > 0 ? selectedChars : null,
           details: Object.keys(details).length > 0 ? details : null,
-          seller_id: sellerId,
-          imageUrls: validImages,
+          imageUrls: allImageUrls,
         }),
       });
 
@@ -234,14 +400,16 @@ export default function CadastrarImovelPage() {
       }
 
       setSuccess({ id: data.property.id });
-    } catch {
-      setError("Erro de conexao. Tente novamente.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro de conexao. Tente novamente.";
+      setError(message);
     } finally {
       setSubmitting(false);
+      setUploadProgress("");
     }
   }
 
-  if (authLoading || checkingSeller) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
@@ -262,19 +430,27 @@ export default function CadastrarImovelPage() {
               Seu imovel ja esta visivel para compradores na plataforma.
             </p>
             <div className="flex flex-col gap-3 pt-2">
-              <Button
-                onClick={() => router.push(`/imovel/${success.id}`)}
-                className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium rounded-xl"
-              >
-                Ver Imovel
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => router.push("/vender/imovel")}
-                className="w-full h-11 rounded-xl"
-              >
-                Cadastrar Outro
-              </Button>
+              <Link href={`/imoveis/${success.id}`}>
+                <Button className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium rounded-xl">
+                  Ver Imovel
+                </Button>
+              </Link>
+              <Link href="/vender/imovel">
+                <Button
+                  variant="outline"
+                  className="w-full h-11 rounded-xl"
+                >
+                  Cadastrar Outro
+                </Button>
+              </Link>
+              <Link href="/vender/meus-imoveis">
+                <Button
+                  variant="outline"
+                  className="w-full h-11 rounded-xl"
+                >
+                  Meus Imoveis
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -365,7 +541,7 @@ export default function CadastrarImovelPage() {
               </div>
               <div>
                 <label className={labelClass}>
-                  Area m² <span className="text-red-400">*</span>
+                  Area m2 <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="number"
@@ -542,92 +718,256 @@ export default function CadastrarImovelPage() {
             </div>
           </div>
 
-          {/* Section: Fotos */}
+          {/* Section: Fotos e Videos */}
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
             <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2 flex items-center gap-2">
               <ImageIcon className="w-4 h-4" />
-              Links das Fotos
+              Fotos e Videos
             </h2>
-            <p className="text-xs text-muted-foreground">
-              Cole links de imagens (ex: Unsplash, Imgur). A primeira foto sera
-              a capa do anuncio. Clique na estrela para alterar a foto de capa.
-            </p>
 
-            <div className="space-y-3">
-              {imageEntries.map((entry, index) => (
-                <div key={index} className="flex gap-2 items-start">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={entry.url}
-                        onChange={(e) => updateImageUrl(index, e.target.value)}
-                        placeholder="https://exemplo.com/foto.jpg"
-                        className={inputClass}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setCover(index)}
-                        title={
-                          entry.is_cover
-                            ? "Foto de capa"
-                            : "Definir como capa"
-                        }
-                        className={`flex-shrink-0 p-2.5 rounded-lg border transition-colors ${
-                          entry.is_cover
-                            ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-400"
-                            : "border-border/50 text-muted-foreground hover:text-yellow-400 hover:border-yellow-500/40"
-                        }`}
+            {/* Tab toggle */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMediaTab("upload")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  mediaTab === "upload"
+                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/40"
+                    : "bg-background/50 text-muted-foreground border border-border/30 hover:border-border/60"
+                }`}
+              >
+                <Upload className="w-4 h-4" />
+                Enviar Arquivos
+              </button>
+              <button
+                type="button"
+                onClick={() => setMediaTab("link")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  mediaTab === "link"
+                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/40"
+                    : "bg-background/50 text-muted-foreground border border-border/30 hover:border-border/60"
+                }`}
+              >
+                <Link2 className="w-4 h-4" />
+                Colar Link
+              </button>
+            </div>
+
+            {/* Upload tab */}
+            {mediaTab === "upload" && (
+              <div className="space-y-4">
+                {/* Drag and drop area */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                    isDragOver
+                      ? "border-emerald-500 bg-emerald-500/10"
+                      : "border-border/50 hover:border-emerald-500/40 hover:bg-emerald-500/5"
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <ImageIcon className="w-8 h-8 text-emerald-500/60" />
+                    <Video className="w-8 h-8 text-emerald-500/60" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Arraste fotos e videos aqui ou{" "}
+                    <span className="text-emerald-400 font-medium">
+                      clique para selecionar
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    JPG, PNG, WebP, GIF, MP4, MOV, WebM - Maximo 10MB por arquivo
+                  </p>
+                </div>
+
+                {/* Media preview grid */}
+                {mediaEntries.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {mediaEntries.map((entry, index) => (
+                      <div
+                        key={index}
+                        className="relative group rounded-lg overflow-hidden border border-border/30 bg-background aspect-square"
                       >
-                        <Star
-                          className="w-4 h-4"
-                          fill={entry.is_cover ? "currentColor" : "none"}
-                        />
-                      </button>
-                      {imageEntries.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeImageField(index)}
-                          className="flex-shrink-0 p-2.5 rounded-lg border border-border/50 text-muted-foreground hover:text-red-400 hover:border-red-500/40 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    {/* Thumbnail preview */}
-                    {entry.url.trim() && (
-                      <div className="relative w-20 h-14 rounded-md overflow-hidden border border-border/30 bg-background">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={entry.url}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
+                        {entry.type === "image" && entry.preview ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={entry.preview}
+                            alt={entry.file?.name || `Media ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-background">
+                            <div className="text-center">
+                              <Play className="w-8 h-8 text-emerald-500/60 mx-auto mb-1" />
+                              <span className="text-[10px] text-muted-foreground truncate block px-1">
+                                {entry.file?.name || "Video"}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Cover badge */}
                         {entry.is_cover && (
-                          <span className="absolute top-0.5 left-0.5 text-[9px] bg-yellow-500 text-black font-bold px-1 rounded">
+                          <span className="absolute top-1 left-1 text-[9px] bg-yellow-500 text-black font-bold px-1.5 py-0.5 rounded">
                             CAPA
                           </span>
                         )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            <button
-              type="button"
-              onClick={addImageField}
-              className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Adicionar mais fotos
-            </button>
+                        {/* Type badge */}
+                        {entry.type === "video" && (
+                          <span className="absolute top-1 right-1 text-[9px] bg-blue-500 text-white font-bold px-1.5 py-0.5 rounded">
+                            VIDEO
+                          </span>
+                        )}
+
+                        {/* Hover overlay with actions */}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMediaCover(index);
+                            }}
+                            title="Definir como capa"
+                            className={`p-1.5 rounded-full transition-colors ${
+                              entry.is_cover
+                                ? "bg-yellow-500 text-black"
+                                : "bg-white/20 text-white hover:bg-yellow-500/80 hover:text-black"
+                            }`}
+                          >
+                            <Star
+                              className="w-4 h-4"
+                              fill={entry.is_cover ? "currentColor" : "none"}
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeMediaEntry(index);
+                            }}
+                            title="Remover"
+                            className="p-1.5 rounded-full bg-white/20 text-white hover:bg-red-500/80 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {mediaEntries.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {mediaEntries.length} arquivo(s) selecionado(s).
+                    Passe o mouse sobre uma imagem para definir como capa ou remover.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Link tab */}
+            {mediaTab === "link" && (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Cole links de imagens (ex: Unsplash, Imgur). Clique na estrela
+                  para definir a foto de capa.
+                </p>
+
+                {linkEntries.map((entry, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-1">
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={entry.url}
+                          onChange={(e) => updateLinkUrl(index, e.target.value)}
+                          placeholder="https://exemplo.com/foto.jpg"
+                          className={inputClass}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setLinkCover(index)}
+                          title={
+                            entry.is_cover
+                              ? "Foto de capa"
+                              : "Definir como capa"
+                          }
+                          className={`flex-shrink-0 p-2.5 rounded-lg border transition-colors ${
+                            entry.is_cover
+                              ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-400"
+                              : "border-border/50 text-muted-foreground hover:text-yellow-400 hover:border-yellow-500/40"
+                          }`}
+                        >
+                          <Star
+                            className="w-4 h-4"
+                            fill={entry.is_cover ? "currentColor" : "none"}
+                          />
+                        </button>
+                        {linkEntries.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeLinkField(index)}
+                            className="flex-shrink-0 p-2.5 rounded-lg border border-border/50 text-muted-foreground hover:text-red-400 hover:border-red-500/40 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      {/* Thumbnail preview */}
+                      {entry.url.trim() && (
+                        <div className="relative w-20 h-14 rounded-md overflow-hidden border border-border/30 bg-background">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={entry.url}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display =
+                                "none";
+                            }}
+                          />
+                          {entry.is_cover && (
+                            <span className="absolute top-0.5 left-0.5 text-[9px] bg-yellow-500 text-black font-bold px-1 rounded">
+                              CAPA
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={addLinkField}
+                  className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar mais fotos
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Upload progress */}
+          {uploadProgress && (
+            <div className="flex items-center gap-2 justify-center text-sm text-emerald-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {uploadProgress}
+            </div>
+          )}
 
           {/* Error message */}
           {error && (

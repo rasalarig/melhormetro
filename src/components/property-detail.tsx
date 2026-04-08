@@ -25,6 +25,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { InterestModal } from "./interest-modal";
 import { LikeButton } from "./like-button";
+import { isVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
 
 const PropertyMap = dynamic(() => import("./property-map"), { ssr: false });
 
@@ -119,12 +120,30 @@ export function PropertyDetail({ property }: PropertyProps) {
         <div className="relative rounded-2xl overflow-hidden mb-8 bg-gradient-to-br from-emerald-900/30 to-teal-900/30 aspect-video">
           {property.images.length > 0 ? (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={property.images[currentImage]?.filename}
-                alt={property.images[currentImage]?.original_name || property.title}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              {(() => {
+                const currentFilename = property.images[currentImage]?.filename || '';
+                const currentUrl = resolveMediaUrl(currentFilename);
+                const currentIsVideo = isVideoUrl(currentUrl);
+                return currentIsVideo ? (
+                  <video
+                    key={currentUrl}
+                    src={currentUrl}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={currentUrl}
+                    alt={property.images[currentImage]?.original_name || property.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                );
+              })()}
               {property.images.length > 1 && (
                 <>
                   <button

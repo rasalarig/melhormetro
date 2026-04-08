@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Share2, Eye, Maximize } from "lucide-react";
 import { LikeButton } from "@/components/like-button";
 import { useEngagement } from "@/hooks/use-engagement";
+import { isVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
 
 interface PropertyImage {
   id: number;
@@ -61,9 +62,11 @@ export function PropertyReel({
   const halfTrackedRef = useRef(false);
   const completeTrackedRef = useRef(false);
 
-  const imageUrls = images
+  const mediaUrls = images
     .filter((img) => img.filename)
-    .map((img) => img.filename.startsWith('http') ? img.filename : `/uploads/${img.filename}`);
+    .map((img) => resolveMediaUrl(img.filename));
+
+  const imageUrls = mediaUrls;
 
   const hasMultipleImages = imageUrls.length > 1;
 
@@ -154,17 +157,30 @@ export function PropertyReel({
       {/* Background Images with Crossfade */}
       {imageUrls.length > 0 ? (
         <div className="absolute inset-0">
-          {imageUrls.map((url, index) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={url}
-              src={url}
-              alt={`${title} - imagem ${index + 1}`}
-              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
-              style={{ opacity: index === currentImageIndex ? 1 : 0 }}
-              loading="lazy"
-            />
-          ))}
+          {imageUrls.map((url, index) =>
+            isVideoUrl(url) ? (
+              <video
+                key={url}
+                src={url}
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+                style={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                muted
+                loop
+                playsInline
+                autoPlay={index === currentImageIndex}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={url}
+                src={url}
+                alt={`${title} - imagem ${index + 1}`}
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+                style={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                loading="lazy"
+              />
+            )
+          )}
         </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/40 to-teal-900/40 flex items-center justify-center">

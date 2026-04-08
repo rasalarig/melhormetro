@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Maximize } from "lucide-react";
+import { MapPin, Maximize, Play } from "lucide-react";
+import { isVideoUrl } from "@/lib/media-utils";
 
 interface PropertyCardProps {
   id: number;
@@ -32,7 +33,22 @@ export function PropertyCard({ id, title, price, area, city, state, type, charac
     <Link href={`/imoveis/${id}`}>
       <Card className="group overflow-hidden border-border/50 bg-card hover:border-emerald-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
         <div className="relative h-48 bg-gradient-to-br from-emerald-900/40 to-teal-900/40 overflow-hidden">
-          {image ? (
+          {image && isVideoUrl(image) ? (
+            <div className="relative w-full h-full">
+              <video
+                src={image}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                muted
+                playsInline
+                preload="metadata"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                  <Play className="w-5 h-5 text-white ml-0.5" fill="white" />
+                </div>
+              </div>
+            </div>
+          ) : image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
