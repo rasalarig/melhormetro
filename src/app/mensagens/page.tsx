@@ -259,7 +259,7 @@ function MensagensContent() {
 
   return (
     <div className="min-h-screen bg-background pt-0 md:pt-28">
-      <div className="h-[100dvh] md:h-[calc(100dvh-7rem)] flex flex-col md:flex-row max-w-6xl mx-auto md:border-x border-border/40">
+      <div className="h-[calc(100dvh-4rem)] md:h-[calc(100dvh-7rem)] flex flex-col md:flex-row max-w-6xl mx-auto md:border-x border-border/40">
         {/* Left Panel - Conversation List */}
         <div
           className={`w-full md:w-80 lg:w-96 border-r border-border/40 flex flex-col ${
@@ -442,7 +442,7 @@ function MensagensContent() {
               </div>
 
               {/* Input Area */}
-              <div className="p-3 border-t border-border/40 safe-area-bottom">
+              <div className="p-3 border-t border-border/40">
                 <div className="flex items-center gap-2">
                   <input
                     ref={inputRef}

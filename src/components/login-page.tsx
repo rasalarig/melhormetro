@@ -77,7 +77,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 pt-16">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-16 pb-24 md:pb-4">
       {/* Background decoration */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
@@ -88,7 +88,7 @@ export function LoginPage() {
         <CardHeader className="text-center space-y-4 pb-2">
           {/* Logo */}
           <div className="flex justify-center">
-            <div className="h-60 w-[48rem] mx-auto overflow-hidden relative">
+            <div className="h-32 md:h-60 w-[28rem] md:w-[48rem] mx-auto overflow-hidden relative">
               <Image
                 src="/logo_novo.png"
                 alt="PropView"
