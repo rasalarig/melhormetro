@@ -20,6 +20,12 @@ import {
   MessageCircle,
   ThermometerSun,
   Filter,
+  Heart,
+  Share2,
+  FileText,
+  Phone,
+  ShoppingCart,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -109,6 +115,120 @@ const statusConfig = {
   sold: { label: "Vendido", color: "bg-red-500", textColor: "text-red-400", bgBadge: "bg-red-500/10 border-red-500/20" },
 };
 
+const scoreWeights: Record<string, number> = {
+  view_half: 10,
+  view_complete: 25,
+  like: 15,
+  share: 20,
+  click_details: 30,
+  click_whatsapp: 35,
+  click_buy: 50,
+};
+
+const actionConfig: { key: string; label: string; icon: typeof Eye; iconColor: string }[] = [
+  { key: "view_half", label: "Visualizou parcialmente", icon: Eye, iconColor: "text-blue-400" },
+  { key: "view_complete", label: "Visualizou completo", icon: Eye, iconColor: "text-indigo-400" },
+  { key: "like", label: "Curtiu", icon: Heart, iconColor: "text-pink-400" },
+  { key: "share", label: "Compartilhou", icon: Share2, iconColor: "text-green-400" },
+  { key: "click_details", label: "Viu detalhes", icon: FileText, iconColor: "text-cyan-400" },
+  { key: "click_whatsapp", label: "Clicou WhatsApp", icon: Phone, iconColor: "text-emerald-400" },
+  { key: "click_buy", label: "Clicou Comprar", icon: ShoppingCart, iconColor: "text-orange-400" },
+];
+
+const temperatureExplanation: Record<string, string> = {
+  frio: "Score abaixo de 20 pontos",
+  morno: "Score entre 20 e 39 pontos",
+  quente: "Score entre 40 e 59 pontos",
+  convertido: "Score acima de 60 pontos",
+};
+
+function EngagementDetailModal({ user, onClose }: { user: InterestedUser; onClose: () => void }) {
+  const tempCfg = temperatureConfig[user.temperature] || temperatureConfig.frio;
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEsc);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Modal */}
+      <div
+        className="relative w-full sm:max-w-md max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border/50 bg-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-card border-b border-border/50 px-5 py-4 flex items-center justify-between">
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground truncate">{user.user_name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.property_title}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 ml-3 p-1.5 rounded-lg hover:bg-muted transition-colors"
+          >
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Actions List */}
+        <div className="px-5 py-4 space-y-3">
+          {actionConfig.map(({ key, label, icon: Icon, iconColor }) => {
+            const count = user.interactions[key as keyof typeof user.interactions] as number;
+            if (!count || count <= 0) return null;
+            const weight = scoreWeights[key];
+            const total = weight * count;
+            return (
+              <div key={key} className="flex items-center gap-3">
+                <div className={`shrink-0 w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center`}>
+                  <Icon className={`w-4 h-4 ${iconColor}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground">{label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {weight}pts cada x {count} {count === 1 ? "vez" : "vezes"}
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-foreground shrink-0">
+                  {total} pts
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer: Total + Temperature */}
+        <div className="border-t border-border/50 px-5 py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">Total</span>
+            <span className="text-lg font-bold text-foreground">{user.score} pts</span>
+          </div>
+          <div className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${tempCfg.bgColor}`}>
+            <Flame className={`w-4 h-4 ${tempCfg.iconColor}`} />
+            <span className={`text-sm font-semibold ${tempCfg.color}`}>{tempCfg.label}</span>
+            <span className="text-xs text-muted-foreground">
+              — {temperatureExplanation[user.temperature] || ""}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const typeLabels: Record<string, string> = {
   terreno: "Terreno",
   casa: "Casa",
@@ -145,6 +265,7 @@ export default function MeusImoveisPage() {
   const [temperatureFilter, setTemperatureFilter] = useState<string | null>(null);
   const [propertyFilter, setPropertyFilter] = useState<string | null>(null);
   const interestedRef = useRef<HTMLDivElement>(null);
+  const [detailUser, setDetailUser] = useState<InterestedUser | null>(null);
 
   const fetchInterested = useCallback(async (tempFilter?: string | null, propFilter?: string | null) => {
     try {
@@ -528,32 +649,6 @@ export default function MeusImoveisPage() {
             </div>
           </div>
 
-          {/* Legend / Explanation */}
-          <div className="rounded-xl border border-border/50 bg-card/50 p-3 mb-4">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Como funciona o interesse:</p>
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-3 h-3 text-blue-400" />
-                <span><strong className="text-blue-400">Frio</strong> — Visualizou brevemente</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-3 h-3 text-yellow-400" />
-                <span><strong className="text-yellow-400">Morno</strong> — Demonstrou interesse</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-3 h-3 text-orange-400" />
-                <span><strong className="text-orange-400">Quente</strong> — Muito interessado</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-3 h-3 text-red-400" />
-                <span><strong className="text-red-400">Convertido</strong> — Clicou em comprar</span>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground/70 mt-2">
-              Pontos: visualizar=10, ver completo=25, curtir=15, compartilhar=20, ver detalhes=30, WhatsApp=35, comprar=50
-            </p>
-          </div>
-
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             {/* Temperature Filter Buttons */}
@@ -673,10 +768,14 @@ export default function MeusImoveisPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${tempCfg.bgColor} ${tempCfg.color}`}>
+                          <button
+                            onClick={() => setDetailUser(item)}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${tempCfg.bgColor} ${tempCfg.color}`}
+                            title="Ver detalhes de engajamento"
+                          >
                             <Flame className={`w-3 h-3 ${tempCfg.iconColor}`} />
                             {tempCfg.label}
-                          </span>
+                          </button>
                           <span className="text-xs font-bold text-muted-foreground" title="Pontuacao de interesse baseada nas interacoes">
                             {item.score} pts
                           </span>
@@ -712,6 +811,11 @@ export default function MeusImoveisPage() {
           )}
         </div>
       </div>
+
+      {/* Engagement Detail Modal */}
+      {detailUser && (
+        <EngagementDetailModal user={detailUser} onClose={() => setDetailUser(null)} />
+      )}
     </div>
   );
 }

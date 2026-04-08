@@ -98,6 +98,7 @@ export async function PUT(
       latitude,
       longitude,
       imageUrls,
+      video_urls,
     } = body;
 
     await query(
@@ -154,6 +155,26 @@ export async function PUT(
               img.url.trim().split('/').pop() || 'image',
               img.is_cover ? 1 : 0,
             ]
+          );
+        }
+      }
+    }
+
+    // Insert video URLs into property_images
+    if (video_urls && Array.isArray(video_urls) && video_urls.length > 0) {
+      for (const videoUrl of video_urls) {
+        if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim()) {
+          const trimmed = videoUrl.trim();
+          let originalName = 'Video';
+          if (/youtube\.com|youtu\.be/i.test(trimmed)) originalName = 'YouTube Video';
+          else if (/tiktok\.com/i.test(trimmed)) originalName = 'TikTok Video';
+          else if (/instagram\.com/i.test(trimmed)) originalName = 'Instagram Video';
+          else if (/vimeo\.com/i.test(trimmed)) originalName = 'Vimeo Video';
+
+          await query(
+            `INSERT INTO property_images (property_id, filename, original_name, is_cover)
+             VALUES ($1, $2, $3, $4)`,
+            [params.id, trimmed, originalName, 0]
           );
         }
       }

@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Share2, Eye, Maximize, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Share2, Eye, Maximize, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { LikeButton } from "@/components/like-button";
 import { useEngagement } from "@/hooks/use-engagement";
-import { isVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
+import { isVideoUrl, isExternalVideoUrl, isEmbeddableVideo, getEmbedUrl, resolveMediaUrl } from "@/lib/media-utils";
 
 interface PropertyImage {
   id: number;
@@ -195,20 +195,63 @@ export function PropertyReel({
         <div
           className="absolute inset-0"
         >
-          {imageUrls.map((url, index) =>
-            isVideoUrl(url) ? (
-              <video
-                key={url}
-                ref={(el) => { videoRefs.current[index] = el; }}
-                src={url}
-                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
-                style={{ opacity: index === currentImageIndex ? 1 : 0 }}
-                muted
-                loop
-                playsInline
-                autoPlay={index === currentImageIndex}
-              />
-            ) : (
+          {imageUrls.map((url, index) => {
+            if (isExternalVideoUrl(url)) {
+              const embedUrl = getEmbedUrl(url);
+              if (embedUrl && isEmbeddableVideo(url)) {
+                return (
+                  <div
+                    key={url}
+                    className="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out"
+                    style={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                  >
+                    <iframe
+                      src={embedUrl}
+                      className="absolute inset-0 w-full h-full"
+                      frameBorder="0"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  </div>
+                );
+              }
+              // TikTok / Instagram - show clickable overlay that opens in new tab
+              return (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute inset-0 w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 transition-opacity duration-1000 ease-in-out"
+                  style={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                >
+                  <div className="text-center">
+                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
+                      <Play className="w-8 h-8 text-white ml-1" />
+                    </div>
+                    <p className="text-white/80 text-sm font-medium">
+                      {/tiktok/i.test(url) ? "Ver no TikTok" : "Ver no Instagram"}
+                    </p>
+                  </div>
+                </a>
+              );
+            }
+            if (isVideoUrl(url)) {
+              return (
+                <video
+                  key={url}
+                  ref={(el) => { videoRefs.current[index] = el; }}
+                  src={url}
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+                  style={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay={index === currentImageIndex}
+                />
+              );
+            }
+            return (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={url}
@@ -218,8 +261,8 @@ export function PropertyReel({
                 style={{ opacity: index === currentImageIndex ? 1 : 0 }}
                 loading="lazy"
               />
-            )
-          )}
+            );
+          })}
         </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/40 to-teal-900/40 flex items-center justify-center">
