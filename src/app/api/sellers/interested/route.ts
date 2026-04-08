@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOne, getAll } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 const SCORE_WEIGHTS: Record<string, number> = {
   view_half: 10,
   view_complete: 25,

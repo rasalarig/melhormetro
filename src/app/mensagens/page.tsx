@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { ArrowLeft, Send, MessageCircle, Check, CheckCheck } from "lucide-react";
@@ -56,7 +56,7 @@ function formatMessageTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function MensagensPage() {
+function MensagensContent() {
   const { user, loading } = useAuth();
   const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -475,5 +475,19 @@ export default function MensagensPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MensagensPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+        </div>
+      }
+    >
+      <MensagensContent />
+    </Suspense>
   );
 }
