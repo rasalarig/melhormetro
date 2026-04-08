@@ -86,6 +86,7 @@ export function PropertyReel({
   // Touch swipe handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -185,14 +186,14 @@ export function PropertyReel({
     <div
       ref={reelRef}
       className="reel-item group relative w-full h-full overflow-hidden bg-black"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Background Images with Crossfade */}
       {imageUrls.length > 0 ? (
         <div
           className="absolute inset-0"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
         >
           {imageUrls.map((url, index) =>
             isVideoUrl(url) ? (

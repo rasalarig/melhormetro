@@ -528,6 +528,32 @@ export default function MeusImoveisPage() {
             </div>
           </div>
 
+          {/* Legend / Explanation */}
+          <div className="rounded-xl border border-border/50 bg-card/50 p-3 mb-4">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Como funciona o interesse:</p>
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Flame className="w-3 h-3 text-blue-400" />
+                <span><strong className="text-blue-400">Frio</strong> — Visualizou brevemente</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Flame className="w-3 h-3 text-yellow-400" />
+                <span><strong className="text-yellow-400">Morno</strong> — Demonstrou interesse</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Flame className="w-3 h-3 text-orange-400" />
+                <span><strong className="text-orange-400">Quente</strong> — Muito interessado</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Flame className="w-3 h-3 text-red-400" />
+                <span><strong className="text-red-400">Convertido</strong> — Clicou em comprar</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 mt-2">
+              Pontos: visualizar=10, ver completo=25, curtir=15, compartilhar=20, ver detalhes=30, WhatsApp=35, comprar=50
+            </p>
+          </div>
+
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             {/* Temperature Filter Buttons */}
@@ -651,8 +677,8 @@ export default function MeusImoveisPage() {
                             <Flame className={`w-3 h-3 ${tempCfg.iconColor}`} />
                             {tempCfg.label}
                           </span>
-                          <span className="text-xs font-bold text-muted-foreground">
-                            {item.score}pts
+                          <span className="text-xs font-bold text-muted-foreground" title="Pontuacao de interesse baseada nas interacoes">
+                            {item.score} pts
                           </span>
                         </div>
                       </div>
