@@ -1,9 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOne, query } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
 import { checkAlertsForProperty } from '@/lib/alerts';
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Voce precisa estar logado para cadastrar um imovel' },
+        { status: 401 }
+      );
+    }
+
+    // Get seller record for the logged-in user
+    const seller = await getOne(
+      'SELECT * FROM sellers WHERE user_id = $1',
+      [user.id]
+    );
+
+    if (!seller) {
+      return NextResponse.json(
+        { error: 'Vendedor nao encontrado. Faca login novamente.' },
+        { status: 404 }
+      );
+    }
+
     const body = await request.json();
     const {
       title,
@@ -17,18 +40,17 @@ export async function POST(request: NextRequest) {
       neighborhood,
       characteristics,
       details,
-      seller_id,
       imageUrls,
     } = body;
 
-    if (!title || !description || !price || !area || !type || !address || !city || !seller_id) {
+    if (!title || !description || !price || !area || !type || !address || !city) {
       return NextResponse.json(
         { error: 'Campos obrigatorios faltando' },
         { status: 400 }
       );
     }
 
-    // Insert the property
+    // Auto-set seller_id from authenticated user
     const property = await getOne(
       `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, seller_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -45,7 +67,7 @@ export async function POST(request: NextRequest) {
         neighborhood || null,
         characteristics ? JSON.stringify(characteristics) : null,
         details ? JSON.stringify(details) : null,
-        seller_id,
+        seller.id,
       ]
     );
 

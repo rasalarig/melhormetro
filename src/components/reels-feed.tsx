@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { PropertyReel } from "@/components/property-reel";
-import { Loader2 } from "lucide-react";
+import { Loader2, Home, Search, PlusCircle } from "lucide-react";
+import Link from "next/link";
 
 interface PropertyImage {
   id: number;
@@ -32,12 +33,17 @@ export function ReelsFeed() {
   useEffect(() => {
     async function fetchReels() {
       try {
-        const res = await fetch("/api/reels");
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch("/api/reels", { signal: controller.signal });
+        clearTimeout(timeout);
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
-        setProperties(data);
+        if (Array.isArray(data)) {
+          setProperties(data);
+        }
       } catch {
-        setError("Erro ao carregar imóveis");
+        // On error/timeout, just show empty state
       } finally {
         setLoading(false);
       }
@@ -74,16 +80,35 @@ export function ReelsFeed() {
   if (properties.length === 0) {
     return (
       <div
-        className="flex items-center justify-center bg-black"
+        className="flex items-center justify-center bg-gradient-to-b from-gray-900 via-gray-900 to-black"
         style={{ height: "100dvh" }}
       >
-        <div className="text-center">
-          <p className="text-white/60 text-lg mb-2">
-            Nenhum imóvel disponível
+        <div className="text-center px-6 max-w-md">
+          <div className="mx-auto mb-6 w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-600/20 flex items-center justify-center">
+            <Home className="w-10 h-10 text-emerald-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Nenhum imóvel cadastrado ainda
+          </h1>
+          <p className="text-white/50 text-sm mb-8">
+            Seja o primeiro a cadastrar! Publique seu imóvel e alcance milhares de pessoas.
           </p>
-          <p className="text-white/40 text-sm">
-            Volte mais tarde para ver novos imóveis.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/vender/imovel"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium transition-all"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Cadastrar Imóvel
+            </Link>
+            <Link
+              href="/imoveis"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-white/10 hover:border-white/20 text-white/70 hover:text-white font-medium transition-all"
+            >
+              <Search className="w-4 h-4" />
+              Explorar
+            </Link>
+          </div>
         </div>
       </div>
     );

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { query, getOne } from './db';
+import bcrypt from 'bcryptjs';
 
 const COOKIE_NAME = 'session_id';
 const SESSION_DURATION_DAYS = 7;
@@ -9,6 +10,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  password_hash: string | null;
   avatar_url: string | null;
   provider: string;
   created_at: string;
@@ -73,6 +75,14 @@ export async function logout() {
   });
 }
 
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
 export async function upsertUser(email: string, name: string, avatarUrl?: string, provider?: string): Promise<User> {
   const existing = await getOne('SELECT * FROM users WHERE email = $1', [email]) as User | null;
 
@@ -110,5 +120,60 @@ export async function upsertUser(email: string, name: string, avatarUrl?: string
   );
 
   const user = await getOne('SELECT * FROM users WHERE id = $1', [result.id]) as User;
+
+  // Auto-create seller record for new users
+  await ensureSellerExists(user.id, user.name, user.email);
+
   return user;
+}
+
+export async function registerUser(name: string, email: string, password: string): Promise<User> {
+  const existing = await getOne('SELECT * FROM users WHERE email = $1', [email]) as User | null;
+
+  if (existing) {
+    throw new Error('EMAIL_EXISTS');
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  const result = await getOne(
+    'INSERT INTO users (name, email, password_hash, provider) VALUES ($1, $2, $3, $4) RETURNING id',
+    [name, email, passwordHash, 'local']
+  );
+
+  const user = await getOne('SELECT * FROM users WHERE id = $1', [result.id]) as User;
+
+  // Auto-create seller record
+  await ensureSellerExists(user.id, user.name, user.email);
+
+  return user;
+}
+
+export async function loginWithPassword(email: string, password: string): Promise<User> {
+  const user = await getOne('SELECT * FROM users WHERE email = $1', [email]) as User | null;
+
+  if (!user) {
+    throw new Error('INVALID_CREDENTIALS');
+  }
+
+  if (!user.password_hash) {
+    throw new Error('USE_GOOGLE');
+  }
+
+  const valid = await verifyPassword(password, user.password_hash);
+  if (!valid) {
+    throw new Error('INVALID_CREDENTIALS');
+  }
+
+  return user;
+}
+
+export async function ensureSellerExists(userId: number, name: string, email: string): Promise<void> {
+  const existing = await getOne('SELECT id FROM sellers WHERE user_id = $1', [userId]);
+  if (!existing) {
+    await query(
+      'INSERT INTO sellers (user_id, name, phone, email, city) VALUES ($1, $2, $3, $4, $5)',
+      [userId, name, '', email, '']
+    );
+  }
 }

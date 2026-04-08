@@ -1,22 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Mail, LogIn } from "lucide-react";
-import { useEffect } from "react";
+import { Mail, Lock, User, LogIn } from "lucide-react";
 import Image from "next/image";
 
 export function LoginPage() {
-  const { user, loading, login } = useAuth();
+  const { user, loading, login, register } = useAuth();
   const router = useRouter();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
 
   useEffect(() => {
     if (!loading && user) {
@@ -28,29 +29,39 @@ export function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim()) {
-      setError("Digite seu email");
+    if (!email.trim() || !email.includes("@")) {
+      setError("Digite um email valido");
       return;
     }
 
-    if (!email.includes("@")) {
-      setError("Digite um email valido");
+    if (!password || password.length < 6) {
+      setError("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+
+    if (mode === "register" && !name.trim()) {
+      setError("Digite seu nome");
       return;
     }
 
     setSubmitting(true);
     try {
-      await login(email.trim());
+      if (mode === "register") {
+        await register(name.trim(), email.trim(), password);
+      } else {
+        await login(email.trim(), password);
+      }
       router.replace("/");
-    } catch {
-      setError("Erro ao fazer login. Tente novamente.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao processar. Tente novamente.";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleGoogleClick = () => {
-    window.location.href = '/api/auth/google';
+    window.location.href = "/api/auth/google";
   };
 
   if (loading) {
@@ -89,17 +100,39 @@ export function LoginPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">
-              Bem-vindo ao PropView
+              {mode === "login" ? "Entrar" : "Criar Conta"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Entre para salvar favoritos, criar alertas e muito mais
+              {mode === "login"
+                ? "Acesse sua conta para gerenciar seus imoveis"
+                : "Cadastre-se para anunciar e gerenciar seus imoveis"}
             </p>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-6 pt-4">
-          {/* Email login form */}
+          {/* Email/Password form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "register" && (
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium text-foreground">
+                  Nome
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Seu nome completo"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-10 bg-background/50 border-border/50 focus-visible:ring-emerald-500/50"
+                    disabled={submitting}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email
@@ -118,6 +151,24 @@ export function LoginPage() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-foreground">
+                Senha
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder={mode === "register" ? "Minimo 6 caracteres" : "Sua senha"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 bg-background/50 border-border/50 focus-visible:ring-emerald-500/50"
+                  disabled={submitting}
+                />
+              </div>
+            </div>
+
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
@@ -130,16 +181,43 @@ export function LoginPage() {
               {submitting ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Entrando...
+                  {mode === "login" ? "Entrando..." : "Cadastrando..."}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <LogIn className="w-4 h-4" />
-                  Entrar
+                  {mode === "login" ? "Entrar" : "Criar Conta"}
                 </span>
               )}
             </Button>
           </form>
+
+          {/* Toggle mode */}
+          <div className="text-center">
+            {mode === "login" ? (
+              <p className="text-sm text-muted-foreground">
+                Nao tem conta?{" "}
+                <button
+                  type="button"
+                  onClick={() => { setMode("register"); setError(""); }}
+                  className="text-emerald-400 hover:text-emerald-300 font-medium"
+                >
+                  Cadastre-se
+                </button>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Ja tem conta?{" "}
+                <button
+                  type="button"
+                  onClick={() => { setMode("login"); setError(""); }}
+                  className="text-emerald-400 hover:text-emerald-300 font-medium"
+                >
+                  Entrar
+                </button>
+              </p>
+            )}
+          </div>
 
           {/* Divider */}
           <div className="relative">
@@ -178,7 +256,6 @@ export function LoginPage() {
             </svg>
             Entrar com Google
           </Button>
-
         </CardContent>
       </Card>
     </div>

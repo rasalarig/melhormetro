@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Menu, X, Users, LogIn, LogOut, Heart, Bell, Film, DollarSign } from "lucide-react";
+import { Search, Menu, X, LogIn, LogOut, Heart, Bell, Film, DollarSign, Home, Plus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 
@@ -59,13 +59,13 @@ export function Navbar() {
     <header className="hidden md:block fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center group">
-          <div className="h-12 w-48 overflow-hidden relative">
+          <div className="h-28 w-80 relative">
             <Image
               src="/logo_novo.png"
               alt="PropView"
               width={1536}
               height={1024}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-auto"
+              className="object-contain w-full h-full"
               priority
             />
           </div>
@@ -79,10 +79,6 @@ export function Navbar() {
           <Link href="/busca" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
             <Search className="w-3.5 h-3.5" />
             Busca IA
-          </Link>
-          <Link href="/admin/leads" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-            <Users className="w-3.5 h-3.5" />
-            Leads
           </Link>
 
           {!loading && user && (
@@ -104,22 +100,27 @@ export function Navbar() {
                   </span>
                 )}
               </Link>
+              <Link href="/vender/meus-imoveis" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                <Home className="w-3.5 h-3.5" />
+                Meus Imoveis
+              </Link>
+              <Link href="/vender/imovel">
+                <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Cadastrar Imovel
+                </Button>
+              </Link>
             </>
           )}
 
-          <Link href="/vender">
-            <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
-              <DollarSign className="w-3.5 h-3.5 mr-1" />
-              Quero Vender
-            </Button>
-          </Link>
-
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10">
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Cadastrar
-            </Button>
-          </Link>
+          {!loading && !user && (
+            <Link href="/vender">
+              <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10">
+                <DollarSign className="w-3.5 h-3.5 mr-1" />
+                Quero Vender
+              </Button>
+            </Link>
+          )}
 
           {/* Auth section */}
           {!loading && (
@@ -152,6 +153,13 @@ export function Navbar() {
                         <p className="text-sm font-medium truncate">{user.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
+                      <Link
+                        href="/vender/meus-imoveis"
+                        className="block px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Meus Imoveis
+                      </Link>
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-accent/50 transition-colors flex items-center gap-2"
@@ -186,11 +194,6 @@ export function Navbar() {
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
             <Link href="/imoveis" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Imoveis</Link>
             <Link href="/busca" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Busca IA</Link>
-            <Link href="/admin/leads" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Leads</Link>
-            <Link href="/vender" className="text-sm py-2 flex items-center gap-2 text-emerald-500 font-medium" onClick={() => setMobileOpen(false)}>
-              <DollarSign className="w-3.5 h-3.5" /> Quero Vender
-            </Link>
-            <Link href="/admin" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Cadastrar Imovel</Link>
 
             {!loading && user && (
               <>
@@ -209,7 +212,20 @@ export function Navbar() {
                     </span>
                   )}
                 </Link>
+                <div className="border-t border-border/40 my-1" />
+                <Link href="/vender/meus-imoveis" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+                  <Home className="w-3.5 h-3.5" /> Meus Imoveis
+                </Link>
+                <Link href="/vender/imovel" className="text-sm py-2 flex items-center gap-2 text-emerald-500 font-medium" onClick={() => setMobileOpen(false)}>
+                  <Plus className="w-3.5 h-3.5" /> Cadastrar Imovel
+                </Link>
               </>
+            )}
+
+            {!loading && !user && (
+              <Link href="/vender" className="text-sm py-2 flex items-center gap-2 text-emerald-500 font-medium" onClick={() => setMobileOpen(false)}>
+                <DollarSign className="w-3.5 h-3.5" /> Quero Vender
+              </Link>
             )}
 
             <div className="border-t border-border/40 my-1" />

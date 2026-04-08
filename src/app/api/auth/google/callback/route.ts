@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession, setSessionCookie, upsertUser } from '@/lib/auth';
+import { createSession, setSessionCookie, upsertUser, ensureSellerExists } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
@@ -46,6 +46,9 @@ export async function GET(request: NextRequest) {
 
     // Upsert user in our database
     const user = await upsertUser(googleUser.email, googleUser.name, googleUser.picture, 'google');
+
+    // Ensure seller record exists for this user
+    await ensureSellerExists(user.id, user.name, user.email);
 
     // Create session
     const sessionId = await createSession(user.id);

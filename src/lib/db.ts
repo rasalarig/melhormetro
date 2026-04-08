@@ -54,10 +54,13 @@ export async function initDB() {
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
+      password_hash TEXT,
       avatar_url TEXT,
       provider TEXT NOT NULL DEFAULT 'local',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,

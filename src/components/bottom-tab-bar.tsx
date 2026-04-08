@@ -2,18 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, Search, Heart, DollarSign, User } from "lucide-react";
+import { Film, Search, Heart, Home, User } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 
-const tabs = [
+const publicTabs = [
   { href: "/", icon: Film, label: "Reels" },
   { href: "/busca", icon: Search, label: "Busca IA" },
-  { href: "/vender", icon: DollarSign, label: "Vender" },
+  { href: "/login", icon: User, label: "Entrar" },
+];
+
+const authedTabs = [
+  { href: "/", icon: Film, label: "Reels" },
+  { href: "/busca", icon: Search, label: "Busca IA" },
+  { href: "/vender/meus-imoveis", icon: Home, label: "Meus Imoveis" },
   { href: "/favoritos", icon: Heart, label: "Favoritos" },
   { href: "/login", icon: User, label: "Perfil" },
 ];
 
 export function BottomTabBar() {
   const pathname = usePathname();
+  const { user, loading } = useAuth();
+
+  const tabs = !loading && user ? authedTabs : publicTabs;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-border/40 safe-area-bottom">

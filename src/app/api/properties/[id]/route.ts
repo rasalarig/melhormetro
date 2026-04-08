@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, getOne } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -45,19 +46,40 @@ export async function GET(
   }
 }
 
+async function verifyOwnership(propertyId: string): Promise<{ error?: NextResponse; sellerId?: number }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: NextResponse.json({ error: 'Nao autenticado' }, { status: 401 }) };
+  }
+
+  const seller = await getOne('SELECT id FROM sellers WHERE user_id = $1', [user.id]);
+  if (!seller) {
+    return { error: NextResponse.json({ error: 'Vendedor nao encontrado' }, { status: 404 }) };
+  }
+
+  const property = await getOne(
+    'SELECT * FROM properties WHERE id = $1',
+    [propertyId]
+  );
+
+  if (!property) {
+    return { error: NextResponse.json({ error: 'Imovel nao encontrado' }, { status: 404 }) };
+  }
+
+  if (property.seller_id !== seller.id) {
+    return { error: NextResponse.json({ error: 'Voce nao tem permissao para modificar este imovel' }, { status: 403 }) };
+  }
+
+  return { sellerId: seller.id };
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const existing = await getOne('SELECT * FROM properties WHERE id = $1', [params.id]);
-
-    if (!existing) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
+    const ownership = await verifyOwnership(params.id);
+    if (ownership.error) return ownership.error;
 
     const body = await request.json();
     const {
@@ -131,18 +153,12 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const existing = await getOne('SELECT * FROM properties WHERE id = $1', [params.id]);
-
-    if (!existing) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
+    const ownership = await verifyOwnership(params.id);
+    if (ownership.error) return ownership.error;
 
     await query('DELETE FROM properties WHERE id = $1', [params.id]);
 
-    return NextResponse.json({ message: 'Property deleted successfully' });
+    return NextResponse.json({ message: 'Imovel excluido com sucesso' });
   } catch (error) {
     console.error('Error deleting property:', error);
     return NextResponse.json(

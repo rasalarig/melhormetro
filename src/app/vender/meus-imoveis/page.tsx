@@ -14,6 +14,7 @@ import {
   Home,
   ExternalLink,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -76,8 +77,8 @@ export default function MeusImoveisPage() {
   const { user, loading: authLoading } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSeller, setIsSeller] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
   const fetchProperties = useCallback(async () => {
@@ -88,7 +89,8 @@ export default function MeusImoveisPage() {
         return;
       }
       if (res.status === 404) {
-        setIsSeller(false);
+        // Seller not found - that's ok, just show empty
+        setProperties([]);
         setLoading(false);
         return;
       }
@@ -129,6 +131,25 @@ export default function MeusImoveisPage() {
     }
   };
 
+  const deleteProperty = async (propertyId: number) => {
+    if (!confirm("Tem certeza que deseja excluir este imovel? Esta acao nao pode ser desfeita.")) {
+      return;
+    }
+    setDeletingId(propertyId);
+    try {
+      const res = await fetch(`/api/properties/${propertyId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        await fetchProperties();
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClick = () => setOpenDropdown(null);
@@ -144,11 +165,6 @@ export default function MeusImoveisPage() {
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
-  }
-
-  if (!isSeller) {
-    router.replace("/vender");
-    return null;
   }
 
   const stats = {
@@ -222,6 +238,7 @@ export default function MeusImoveisPage() {
               const coverUrl = getCoverImage(property.images);
               const config = statusConfig[property.status];
               const isUpdating = updatingId === property.id;
+              const isDeleting = deletingId === property.id;
 
               return (
                 <div
@@ -280,7 +297,7 @@ export default function MeusImoveisPage() {
                         {formatPrice(property.price)}
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        {property.area} m²
+                        {property.area} m2
                       </span>
                     </div>
 
@@ -327,7 +344,7 @@ export default function MeusImoveisPage() {
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
                             <>
-                              Alterar Status
+                              Status
                               <ChevronDown className="w-3.5 h-3.5 ml-1" />
                             </>
                           )}
@@ -362,6 +379,21 @@ export default function MeusImoveisPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Delete button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/20"
+                        disabled={isDeleting}
+                        onClick={() => deleteProperty(property.id)}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
