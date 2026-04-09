@@ -80,23 +80,25 @@ export async function POST(request: NextRequest) {
 
   const client = new OpenAI({ apiKey: openaiKey });
 
-  // Build the prompt
-  let prompt = 'Edit this room photo. Keep the room layout, furniture positions, and structure exactly the same. Only change what is specified: ';
+  // Build the prompt — CRITICAL: be extremely explicit about preserving the original image
+  const changes: string[] = [];
 
   if (style && styleDescriptions[style]) {
-    prompt += `The decoration style is ${styleDescriptions[style]}. `;
+    changes.push(`change the decoration style to ${styleDescriptions[style]}`);
   }
   if (wall_color && colorDescriptions[wall_color]) {
-    prompt += `The walls are painted ${colorDescriptions[wall_color]}. `;
+    changes.push(`repaint the walls to ${colorDescriptions[wall_color]}`);
   }
   if (floor && floorDescriptions[floor]) {
-    prompt += `The floor has ${floorDescriptions[floor]}. `;
+    changes.push(`change the floor to ${floorDescriptions[floor]}`);
   }
   if (custom_prompt) {
-    prompt += custom_prompt + '. ';
+    changes.push(custom_prompt);
   }
 
-  prompt += 'Maintain the original room perspective, lighting, and composition. Only apply the requested changes.';
+  const changesList = changes.length > 0 ? changes.join('; ') : 'subtly refresh the decor';
+
+  const prompt = `IMPORTANT: This is a photo editing task. You MUST preserve the EXACT same room structure, walls, windows, doors, ceiling, camera angle, perspective, and lighting from the original photo. Do NOT generate a new room. Do NOT change the room layout or architecture. The result must look like the SAME room photographed from the SAME position. The ONLY changes allowed are: ${changesList}. Everything else in the photo must remain IDENTICAL to the original.`;
 
   try {
     // Fetch the original image and convert to a File object
