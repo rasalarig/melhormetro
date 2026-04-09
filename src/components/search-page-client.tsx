@@ -142,12 +142,12 @@ export function SearchPageClient() {
   };
 
   const suggestions = [
-    "terreno plano em condominio",
-    "com arvores frutiferas",
+    "terreno plano em condomínio",
+    "com árvores frutíferas",
     "vista para serra",
-    "ate R$ 150.000",
-    "terreno grande acima de 400m2",
-    "seguro para criancas",
+    "até R$ 150.000",
+    "terreno grande acima de 400m²",
+    "seguro para crianças",
   ];
 
   return (
