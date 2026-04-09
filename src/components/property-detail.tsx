@@ -25,6 +25,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { InterestModal } from "./interest-modal";
 import { LikeButton } from "./like-button";
+import { ReimaginePanelTrigger, ReimaginePanelDialog } from "./reimagine-panel";
 import { isVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
 
 const PropertyMap = dynamic(() => import("./property-map"), { ssr: false });
@@ -68,6 +69,7 @@ export function PropertyDetail({ property }: PropertyProps) {
   );
   const [currentImage, setCurrentImage] = useState(0);
   const [showInterest, setShowInterest] = useState(false);
+  const [reimagineOpen, setReimagineOpen] = useState(false);
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -136,12 +138,18 @@ export function PropertyDetail({ property }: PropertyProps) {
                     playsInline
                   />
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={currentUrl}
-                    alt={property.images[currentImage]?.original_name || property.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  <div className="absolute inset-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={currentUrl}
+                      alt={property.images[currentImage]?.original_name || property.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <ReimaginePanelTrigger
+                      variant="detail"
+                      onClick={() => setReimagineOpen(true)}
+                    />
+                  </div>
                 );
               })()}
               {property.images.length > 1 && (
@@ -402,6 +410,19 @@ export function PropertyDetail({ property }: PropertyProps) {
         isOpen={showInterest}
         onClose={() => setShowInterest(false)}
       />
+
+      {property.images.length > 0 && (() => {
+        const currentFilename = property.images[currentImage]?.filename || '';
+        const currentUrl = resolveMediaUrl(currentFilename);
+        const currentIsVideo = isVideoUrl(currentUrl);
+        return !currentIsVideo ? (
+          <ReimaginePanelDialog
+            imageUrl={currentUrl}
+            isOpen={reimagineOpen}
+            onClose={() => setReimagineOpen(false)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }

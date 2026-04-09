@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Share2, Eye, Maximize, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { LikeButton } from "@/components/like-button";
+import { ReimaginePanelTrigger, ReimaginePanelDialog } from "@/components/reimagine-panel";
 import { useEngagement } from "@/hooks/use-engagement";
 import { isVideoUrl, isExternalVideoUrl, isEmbeddableVideo, getEmbedUrl, resolveMediaUrl } from "@/lib/media-utils";
 
@@ -56,6 +57,7 @@ export function PropertyReel({
 }: PropertyReelProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [showReimaginePanelOpen, setShowReimaginePanelOpen] = useState(false);
   const reelRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const { trackEvent } = useEngagement(id);
@@ -393,6 +395,14 @@ export function PropertyReel({
           <span className="text-white/70 text-[10px]">Enviar</span>
         </button>
 
+        {/* Reimaginar button - only for images */}
+        {imageUrls[currentImageIndex] && !isVideoUrl(imageUrls[currentImageIndex]) && !isExternalVideoUrl(imageUrls[currentImageIndex]) && (
+          <ReimaginePanelTrigger
+            variant="reel"
+            onClick={() => setShowReimaginePanelOpen(true)}
+          />
+        )}
+
         {/* Ver Detalhes button */}
         <Link
           href={`/imoveis/${id}`}
@@ -406,6 +416,15 @@ export function PropertyReel({
           <span className="text-white/70 text-[10px]">Detalhes</span>
         </Link>
       </div>
+
+      {/* Reimagine Panel Dialog */}
+      {imageUrls[currentImageIndex] && (
+        <ReimaginePanelDialog
+          imageUrl={imageUrls[currentImageIndex]}
+          isOpen={showReimaginePanelOpen}
+          onClose={() => setShowReimaginePanelOpen(false)}
+        />
+      )}
     </div>
   );
 }
