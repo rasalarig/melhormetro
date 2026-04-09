@@ -46,3 +46,4 @@ public/uploads/
 .worktrees/
 .sprintfy/evidence/
 .sprintfy_session_history.json
+.dev.pid
