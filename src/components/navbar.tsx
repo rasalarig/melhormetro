@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Search, Menu, X, LogIn, LogOut, Heart, Bell, Film, DollarSign, Home, Plus, MessageCircle, Users } from "lucide-react";
+import { SlidersHorizontal, Menu, X, LogIn, LogOut, Heart, Bell, Film, DollarSign, Home, Plus, MessageCircle, Users } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 
@@ -94,8 +94,8 @@ export function Navbar() {
             Imóveis
           </Link>
           <Link href="/busca" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-            <Search className="w-3.5 h-3.5" />
-            Busca IA
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Filtro
           </Link>
 
           {!loading && user && (
@@ -230,7 +230,7 @@ export function Navbar() {
         <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-xl">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
             <Link href="/imoveis" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Imóveis</Link>
-            <Link href="/busca" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Busca IA</Link>
+            <Link href="/busca" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Filtro</Link>
 
             {!loading && user && (
               <>

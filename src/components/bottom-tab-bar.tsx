@@ -2,19 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, Search, Heart, Home, User, Users, MessageCircle, LogOut } from "lucide-react";
+import { Film, SlidersHorizontal, Heart, Home, User, Users, MessageCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { useState, useEffect, useRef } from "react";
 
 const publicTabs = [
   { href: "/", icon: Film, label: "Reels" },
-  { href: "/busca", icon: Search, label: "Busca IA" },
+  { href: "/busca", icon: SlidersHorizontal, label: "Filtro" },
   { href: "/login", icon: User, label: "Entrar" },
 ];
 
 const authedTabs = [
   { href: "/", icon: Film, label: "Reels" },
-  { href: "/busca", icon: Search, label: "Busca IA" },
+  { href: "/busca", icon: SlidersHorizontal, label: "Filtro" },
   { href: "/vender/leads", icon: Users, label: "Leads" },
   { href: "/vender/meus-imoveis", icon: Home, label: "Meus Imóveis" },
   { href: "#profile", icon: User, label: "Perfil" },

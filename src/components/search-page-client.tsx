@@ -3,7 +3,15 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Search,
   Sparkles,
@@ -12,14 +20,58 @@ import {
   Cpu,
   ArrowLeft,
   SlidersHorizontal,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import {
-  SearchFiltersPanel,
   type ManualFilters,
   getEmptyManualFilters,
   countActiveFilters,
 } from "@/components/search-filters-panel";
+
+// ── Constants (duplicated from search-filters-panel for inline use) ──────────
+
+const PROPERTY_TYPES = [
+  { value: "casa", label: "Casa" },
+  { value: "apartamento", label: "Apartamento" },
+  { value: "terreno", label: "Terreno" },
+  { value: "comercial", label: "Comercial" },
+  { value: "rural", label: "Rural" },
+];
+
+const PRICE_RANGES = [
+  { label: "Ate R$ 200mil", min: null, max: 200000 },
+  { label: "R$ 200-500mil", min: 200000, max: 500000 },
+  { label: "R$ 500mil-1M", min: 500000, max: 1000000 },
+  { label: "Acima de R$ 1M", min: 1000000, max: null },
+];
+
+const CHARACTERISTICS_OPTIONS = [
+  "Piscina",
+  "Churrasqueira",
+  "Condominio fechado",
+  "Seguranca 24h",
+  "Area gourmet",
+  "Cozinha planejada",
+  "Quintal",
+  "Varanda",
+  "Elevador",
+  "Academia",
+  "Playground",
+  "Salao de festas",
+  "Ar condicionado",
+  "Energia solar",
+];
+
+const SORT_OPTIONS = [
+  { value: "relevance", label: "Mais relevantes" },
+  { value: "price_asc", label: "Menor preco" },
+  { value: "price_desc", label: "Maior preco" },
+  { value: "area_asc", label: "Menor area" },
+  { value: "area_desc", label: "Maior area" },
+];
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface SearchResult {
   id: number;
@@ -44,6 +96,20 @@ interface SearchResponse {
   total: number;
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const parsePriceInput = (val: string): number | null => {
+  const num = parseInt(val.replace(/\D/g, ""), 10);
+  return isNaN(num) ? null : num;
+};
+
+const formatPriceDisplay = (val: number | null): string => {
+  if (val === null) return "";
+  return val.toLocaleString("pt-BR");
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
+
 export function SearchPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -55,8 +121,11 @@ export function SearchPageClient() {
   const [searchMode, setSearchMode] = useState<string>("");
   const [searched, setSearched] = useState(false);
   const [filters, setFilters] = useState<ManualFilters>(getEmptyManualFilters());
+  const [showAiSearch, setShowAiSearch] = useState(false);
 
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
+
+  // ── Search logic ───────────────────────────────────────────────────────
 
   const doSearch = useCallback(
     async (searchQuery: string, manualFilters?: ManualFilters) => {
@@ -73,7 +142,6 @@ export function SearchPageClient() {
         let data: SearchResponse;
 
         if (hasFilters) {
-          // Use POST when we have manual filters
           const res = await fetch("/api/search", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -97,7 +165,6 @@ export function SearchPageClient() {
           });
           data = await res.json();
         } else {
-          // Simple GET for text-only search
           const res = await fetch(
             `/api/search?q=${encodeURIComponent(searchQuery)}`
           );
@@ -135,23 +202,72 @@ export function SearchPageClient() {
     }
   };
 
-  const handleApplyFilters = (newFilters: ManualFilters) => {
-    setFilters(newFilters);
-    // Trigger a search with the new filters
-    doSearch(query.trim(), newFilters);
+  const handleFilterSearch = () => {
+    const trimmed = query.trim();
+    if (trimmed || countActiveFilters(filters) > 0) {
+      if (trimmed) {
+        router.push(`/busca?q=${encodeURIComponent(trimmed)}`, {
+          scroll: false,
+        });
+      }
+      doSearch(trimmed);
+    }
   };
 
-  const suggestions = [
-    "terreno plano em condomínio",
-    "com árvores frutíferas",
-    "vista para serra",
-    "até R$ 150.000",
-    "terreno grande acima de 400m²",
-    "seguro para crianças",
-  ];
+  const handleClearFilters = () => {
+    const empty = getEmptyManualFilters();
+    setFilters(empty);
+    if (query.trim()) {
+      doSearch(query.trim(), empty);
+    } else {
+      setResults([]);
+      setSearched(false);
+    }
+  };
+
+  // ── Filter helpers ─────────────────────────────────────────────────────
+
+  const toggleType = (type: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      types: prev.types.includes(type)
+        ? prev.types.filter((t) => t !== type)
+        : [...prev.types, type],
+    }));
+  };
+
+  const toggleCharacteristic = (char: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      characteristics: prev.characteristics.includes(char)
+        ? prev.characteristics.filter((c) => c !== char)
+        : [...prev.characteristics, char],
+    }));
+  };
+
+  const setCounterValue = (
+    field: "min_bedrooms" | "min_bathrooms" | "min_parking",
+    value: number
+  ) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: prev[field] === value ? null : value,
+    }));
+  };
+
+  const applyPriceRange = (min: number | null, max: number | null) => {
+    setFilters((prev) => {
+      if (prev.min_price === min && prev.max_price === max) {
+        return { ...prev, min_price: null, max_price: null };
+      }
+      return { ...prev, min_price: min, max_price: max };
+    });
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="pt-24 pb-16 px-4">
+    <div className="pt-24 pb-24 px-4">
       <div className="container mx-auto max-w-5xl">
         {/* Back link */}
         <Link
@@ -159,67 +275,417 @@ export function SearchPageClient() {
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar ao início
+          Voltar ao inicio
         </Link>
 
-        {/* Search Header */}
+        {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">
-            Busca <span className="text-emerald-400">Inteligente</span>
+            Filtrar <span className="text-emerald-400">Imoveis</span>
           </h1>
           <p className="text-muted-foreground">
-            Descreva o imóvel ideal em suas próprias palavras
+            Encontre o imovel ideal usando os filtros abaixo
           </p>
         </div>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto mb-6">
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
-            <div className="relative flex flex-col bg-card border border-border rounded-2xl overflow-hidden">
-              <div className="flex items-start">
-                <Search className="w-5 h-5 text-muted-foreground ml-4 mt-4 shrink-0" />
-                <textarea
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSearch(e);
-                    }
-                  }}
-                  placeholder="Descreva o imóvel que você procura..."
-                  rows={3}
-                  className="flex-1 bg-transparent px-4 py-4 text-base outline-none placeholder:text-muted-foreground/60 resize-none"
+        {/* ── Collapsible AI Search ────────────────────────────────────── */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <button
+            type="button"
+            onClick={() => setShowAiSearch(!showAiSearch)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/50 bg-card hover:border-emerald-500/30 transition-colors"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              Busca Inteligente (IA)
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 text-muted-foreground transition-transform ${
+                showAiSearch ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+          {showAiSearch && (
+            <div className="mt-2 p-4 rounded-xl border border-border/50 bg-card space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Descreva o imovel em suas palavras e a IA encontra para voce
+              </p>
+              <textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleFilterSearch();
+                  }
+                }}
+                placeholder="Ex: terreno plano em condominio com vista para serra..."
+                rows={3}
+                className="w-full bg-background border border-border/50 rounded-lg px-4 py-3 text-sm outline-none placeholder:text-muted-foreground/60 resize-none focus:border-emerald-500/50 transition-colors"
+              />
+              <Button
+                type="button"
+                onClick={handleFilterSearch}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Buscar com IA
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Inline Filters ───────────────────────────────────────────── */}
+        <div className="max-w-3xl mx-auto space-y-6 mb-8">
+          {/* Tipo de Imovel */}
+          <section>
+            <h3 className="text-sm font-medium mb-3 text-foreground">
+              Tipo de Imovel
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {PROPERTY_TYPES.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleType(value)}
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    filters.types.includes(value)
+                      ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                      : "border-border/50 text-muted-foreground hover:border-emerald-500/30 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Faixa de Preco */}
+          <section>
+            <h3 className="text-sm font-medium mb-3 text-foreground">
+              Faixa de Preco
+            </h3>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {PRICE_RANGES.map((range) => (
+                <button
+                  key={range.label}
+                  type="button"
+                  onClick={() => applyPriceRange(range.min, range.max)}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                    filters.min_price === range.min &&
+                    filters.max_price === range.max
+                      ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                      : "border-border/50 text-muted-foreground hover:border-emerald-500/30 hover:text-foreground"
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Minimo (R$)
+                </label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formatPriceDisplay(filters.min_price)}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      min_price: parsePriceInput(e.target.value),
+                    }))
+                  }
+                  className="bg-background border-border/50"
                 />
               </div>
-              <div className="flex items-center justify-between px-2 pb-2 gap-2">
-                <div className="pl-2">
-                  <SearchFiltersPanel
-                    filters={filters}
-                    onApply={handleApplyFilters}
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl px-6"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Buscar
-                    </>
-                  )}
-                </Button>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Maximo (R$)
+                </label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Sem limite"
+                  value={formatPriceDisplay(filters.max_price)}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      max_price: parsePriceInput(e.target.value),
+                    }))
+                  }
+                  className="bg-background border-border/50"
+                />
               </div>
             </div>
-          </div>
-        </form>
+          </section>
 
-        {/* Active filters summary */}
+          {/* Area */}
+          <section>
+            <h3 className="text-sm font-medium mb-3 text-foreground">
+              Area (m2)
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Minimo
+                </label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={filters.min_area ?? ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      min_area: e.target.value ? Number(e.target.value) : null,
+                    }))
+                  }
+                  className="bg-background border-border/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Maximo
+                </label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Sem limite"
+                  value={filters.max_area ?? ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      max_area: e.target.value ? Number(e.target.value) : null,
+                    }))
+                  }
+                  className="bg-background border-border/50"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Quartos, Banheiros, Vagas - in a row on desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Quartos */}
+            <section>
+              <h3 className="text-sm font-medium mb-3 text-foreground">
+                Quartos
+              </h3>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCounterValue("min_bedrooms", n)}
+                    className={`w-10 h-10 rounded-lg border text-sm font-medium transition-colors ${
+                      filters.min_bedrooms === n
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        : "border-border/50 text-muted-foreground hover:border-emerald-500/30 hover:text-foreground"
+                    }`}
+                  >
+                    {n === 5 ? "5+" : n}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Banheiros */}
+            <section>
+              <h3 className="text-sm font-medium mb-3 text-foreground">
+                Banheiros
+              </h3>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCounterValue("min_bathrooms", n)}
+                    className={`w-10 h-10 rounded-lg border text-sm font-medium transition-colors ${
+                      filters.min_bathrooms === n
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        : "border-border/50 text-muted-foreground hover:border-emerald-500/30 hover:text-foreground"
+                    }`}
+                  >
+                    {n === 4 ? "4+" : n}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Vagas de garagem */}
+            <section>
+              <h3 className="text-sm font-medium mb-3 text-foreground">
+                Vagas de garagem
+              </h3>
+              <div className="flex gap-2">
+                {[1, 2, 3].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCounterValue("min_parking", n)}
+                    className={`w-10 h-10 rounded-lg border text-sm font-medium transition-colors ${
+                      filters.min_parking === n
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        : "border-border/50 text-muted-foreground hover:border-emerald-500/30 hover:text-foreground"
+                    }`}
+                  >
+                    {n === 3 ? "3+" : n}
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {/* Localizacao */}
+          <section>
+            <h3 className="text-sm font-medium mb-3 text-foreground">
+              Localizacao
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Cidade
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Ex: Atibaia, Braganca Paulista..."
+                  value={filters.city}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, city: e.target.value }))
+                  }
+                  className="bg-background border-border/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Bairro
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Ex: Jardim Paulista..."
+                  value={filters.neighborhood}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      neighborhood: e.target.value,
+                    }))
+                  }
+                  className="bg-background border-border/50"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Caracteristicas */}
+          <section>
+            <h3 className="text-sm font-medium mb-3 text-foreground">
+              Caracteristicas
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {CHARACTERISTICS_OPTIONS.map((char) => (
+                <label
+                  key={char}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <div
+                    className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                      filters.characteristics.includes(char)
+                        ? "bg-emerald-500 border-emerald-500"
+                        : "border-border/50 group-hover:border-emerald-500/30"
+                    }`}
+                  >
+                    {filters.characteristics.includes(char) && (
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span
+                    className={`text-sm transition-colors ${
+                      filters.characteristics.includes(char)
+                        ? "text-foreground"
+                        : "text-muted-foreground group-hover:text-foreground"
+                    }`}
+                  >
+                    {char}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </section>
+
+          {/* Ordenacao */}
+          <section>
+            <h3 className="text-sm font-medium mb-3 text-foreground">
+              Ordenacao
+            </h3>
+            <Select
+              value={filters.sort_by}
+              onValueChange={(val) =>
+                setFilters((prev) => ({ ...prev, sort_by: val }))
+              }
+            >
+              <SelectTrigger className="bg-background border-border/50 max-w-xs">
+                <SelectValue placeholder="Mais relevantes" />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </section>
+
+          {/* Action buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+            <Button
+              type="button"
+              onClick={handleFilterSearch}
+              disabled={loading}
+              className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl px-8 py-3 text-base"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Search className="w-4 h-4 mr-2" />
+              )}
+              Buscar
+            </Button>
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="text-sm text-muted-foreground hover:text-red-400 transition-colors underline"
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Active filters summary ───────────────────────────────────── */}
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-2 mb-6 max-w-3xl mx-auto">
             <span className="text-xs text-muted-foreground">Filtros ativos:</span>
@@ -273,50 +739,13 @@ export function SearchPageClient() {
             )}
             {filters.characteristics.length > 0 && (
               <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                {filters.characteristics.length} característica{filters.characteristics.length > 1 ? "s" : ""}
+                {filters.characteristics.length} caracteristica{filters.characteristics.length > 1 ? "s" : ""}
               </Badge>
             )}
-            <button
-              onClick={() => {
-                const empty = getEmptyManualFilters();
-                setFilters(empty);
-                if (query.trim()) {
-                  doSearch(query.trim(), empty);
-                } else {
-                  setResults([]);
-                  setSearched(false);
-                }
-              }}
-              className="text-xs text-muted-foreground hover:text-red-400 transition-colors underline"
-            >
-              Limpar todos
-            </button>
           </div>
         )}
 
-        {/* Suggestion chips */}
-        {!searched && (
-          <div className="flex flex-wrap justify-center gap-2 mb-12">
-            <span className="text-xs text-muted-foreground">Sugestões:</span>
-            {suggestions.map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setQuery(s);
-                  router.push(`/busca?q=${encodeURIComponent(s)}`, {
-                    scroll: false,
-                  });
-                  doSearch(s);
-                }}
-                className="text-xs px-3 py-1 rounded-full border border-border hover:border-emerald-500/50 hover:text-emerald-400 transition-colors text-muted-foreground"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Results */}
+        {/* ── Results ──────────────────────────────────────────────────── */}
         {loading && (
           <div className="text-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mx-auto mb-4" />
@@ -362,22 +791,8 @@ export function SearchPageClient() {
                   Nenhum resultado encontrado
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Tente descrever de outra forma ou ajuste os filtros.
+                  Tente ajustar os filtros ou use a busca inteligente com IA.
                 </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {suggestions.slice(0, 3).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => {
-                        setQuery(s);
-                        doSearch(s);
-                      }}
-                      className="text-xs px-3 py-1 rounded-full border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
               </div>
             ) : (
               <div className="space-y-6">
