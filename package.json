@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node dev.js",
+    "dev:raw": "next dev",
     "clean": "rimraf .next",
-    "dev:clean": "rimraf .next && next dev",
     "build": "rimraf .next && NODE_OPTIONS='--max-old-space-size=512' next build",
     "start": "next start",
     "lint": "next lint"

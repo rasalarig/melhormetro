@@ -14,10 +14,11 @@ const nextConfig = {
     cpus: 1,
   },
   webpack: (config) => {
-    config.cache = false;
+    // Cache in memory only — avoids Windows file lock corruption
+    config.cache = { type: 'memory' };
     config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
+      poll: 2000,
+      aggregateTimeout: 500,
       ignored: ['**/node_modules', '**/.git', '**/.next'],
     };
     return config;
