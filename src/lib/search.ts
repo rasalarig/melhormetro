@@ -108,8 +108,16 @@ Query: "terreno em Atibaia fora de condomínio"
 Query: "casa térrea barata com churrasqueira sem condomínio"
 {"type":["casa"],"min_price":null,"max_price":500000,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":null,"must_have":["terrea","churrasqueira"],"must_not_have":["condominio","condomínio"],"keywords":[],"exclude_keywords":["condominio","condomínio"],"sort_by":"price_asc"}
 
+Query: "casa sem arvores"
+{"type":["casa"],"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":null,"must_have":[],"must_not_have":["arvore","arvores","árvore","árvores"],"keywords":[],"exclude_keywords":["arvore","arvores","árvore","árvores"],"sort_by":"relevance"}
+
+Query: "terreno sem aclive"
+{"type":["terreno"],"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":null,"must_have":[],"must_not_have":["aclive","aclives"],"keywords":[],"exclude_keywords":["aclive","aclives"],"sort_by":"relevance"}
+
 Query: "casa"
-{"type":["casa"],"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":null,"must_have":[],"must_not_have":[],"keywords":[],"exclude_keywords":[],"sort_by":"relevance"}`;
+{"type":["casa"],"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":null,"must_have":[],"must_not_have":[],"keywords":[],"exclude_keywords":[],"sort_by":"relevance"}
+
+CRITICAL: When the user says "sem X" (without X), you MUST add X and all its variations (with/without accents, singular/plural) to BOTH must_not_have AND exclude_keywords. This ensures properties containing X in ANY field are excluded. Never put exclusion terms in keywords or must_have.`;
 
 // ─── Step 1: AI Generates Structured Filters ─────────────────────────────────
 
@@ -205,6 +213,12 @@ function getEmptyFilters(): SearchFilters {
 }
 
 function sanitizeFilters(filters: SearchFilters): SearchFilters {
+  const mustNotHave = Array.isArray(filters.must_not_have) ? filters.must_not_have : [];
+  const excludeKeywords = Array.isArray(filters.exclude_keywords) ? filters.exclude_keywords : [];
+
+  // Ensure everything in must_not_have is also in exclude_keywords (belt and suspenders)
+  const mergedExclude = Array.from(new Set([...excludeKeywords, ...mustNotHave]));
+
   return {
     type: Array.isArray(filters.type) && filters.type.length > 0 ? filters.type.map((t) => t.toLowerCase()) : null,
     min_price: typeof filters.min_price === "number" ? filters.min_price : null,
@@ -218,9 +232,9 @@ function sanitizeFilters(filters: SearchFilters): SearchFilters {
     neighborhood: typeof filters.neighborhood === "string" ? filters.neighborhood : null,
     state: typeof filters.state === "string" ? filters.state : null,
     must_have: Array.isArray(filters.must_have) ? filters.must_have : [],
-    must_not_have: Array.isArray(filters.must_not_have) ? filters.must_not_have : [],
+    must_not_have: mustNotHave,
     keywords: Array.isArray(filters.keywords) ? filters.keywords : [],
-    exclude_keywords: Array.isArray(filters.exclude_keywords) ? filters.exclude_keywords : [],
+    exclude_keywords: mergedExclude,
     sort_by: filters.sort_by || "relevance",
   };
 }
