@@ -72,7 +72,7 @@ export default function PremiumReelsPage() {
             Portfólio Premium
           </h1>
           <p className="text-amber-100/40 text-base mb-10 leading-relaxed">
-            Em breve, os melhores imóveis acima de R$10 milhões estarão disponíveis aqui.
+            Em breve, imóveis selecionados exclusivamente para você estarão disponíveis aqui.
           </p>
           <Link
             href="/premium"

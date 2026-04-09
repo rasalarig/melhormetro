@@ -69,7 +69,7 @@ export default function PremiumImoveisPage() {
             </h1>
           </div>
           <p className="text-amber-100/40">
-            {properties.length} {properties.length === 1 ? "imóvel" : "imóveis"} acima de R$10 milhões
+            {properties.length} {properties.length === 1 ? "imóvel selecionado" : "imóveis selecionados"}
           </p>
         </div>
 

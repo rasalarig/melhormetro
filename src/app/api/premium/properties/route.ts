@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const properties = await getAll(
-      "SELECT * FROM properties WHERE status = 'active' AND price >= 10000000 ORDER BY price DESC"
+      "SELECT * FROM properties WHERE status = 'active' AND is_premium = true ORDER BY price DESC"
     );
 
     const propertiesWithImages = [];

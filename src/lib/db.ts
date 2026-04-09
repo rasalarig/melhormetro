@@ -202,6 +202,8 @@ export async function initDB() {
     ALTER TABLE conversations ADD COLUMN IF NOT EXISTS intermediation_status TEXT DEFAULT 'none' CHECK(intermediation_status IN ('none', 'active', 'closed'));
     ALTER TABLE conversations ADD COLUMN IF NOT EXISTS intermediation_notes TEXT;
     ALTER TABLE conversations ADD COLUMN IF NOT EXISTS intermediation_started_at TIMESTAMPTZ;
+
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;
   `);
 }
 

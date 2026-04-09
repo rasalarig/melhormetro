@@ -25,7 +25,7 @@ interface Property {
 
 async function getProperties() {
   return await getAll(
-    "SELECT id, title, price, area, type, city, state, status, created_at FROM properties ORDER BY created_at DESC"
+    "SELECT id, title, price, area, type, city, state, status, is_premium, created_at FROM properties ORDER BY created_at DESC"
   ) as Property[];
 }
 

@@ -12,6 +12,7 @@ import {
   ToggleRight,
   Loader2,
   Plus,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,6 +25,7 @@ interface Property {
   city: string;
   state: string;
   status: string;
+  is_premium: boolean;
   created_at: string;
 }
 
@@ -37,6 +39,7 @@ export function AdminPropertyList({
   const [properties, setProperties] = useState(initialProperties);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [togglingPremiumId, setTogglingPremiumId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   const formatPrice = (value: number) =>
@@ -106,6 +109,23 @@ export function AdminPropertyList({
     }
   };
 
+  const handleTogglePremium = async (id: number) => {
+    setTogglingPremiumId(id);
+    try {
+      const res = await fetch(`/api/admin/properties/${id}/premium`, { method: "PUT" });
+      if (res.ok) {
+        const data = await res.json();
+        setProperties((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, is_premium: data.is_premium } : p))
+        );
+      }
+    } catch (err) {
+      console.error("Toggle premium failed:", err);
+    } finally {
+      setTogglingPremiumId(null);
+    }
+  };
+
   if (properties.length === 0) {
     return (
       <Card className="p-12 text-center bg-card border-border/50">
@@ -141,6 +161,12 @@ export function AdminPropertyList({
                 >
                   {statusLabels[property.status] || property.status}
                 </Badge>
+                {property.is_premium && (
+                  <Badge className="text-xs shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Premium
+                  </Badge>
+                )}
               </div>
               <h3 className="font-semibold truncate">{property.title}</h3>
               <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
@@ -158,6 +184,21 @@ export function AdminPropertyList({
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleTogglePremium(property.id)}
+                disabled={togglingPremiumId === property.id}
+                className={property.is_premium ? "text-amber-400 hover:text-amber-300" : "text-muted-foreground hover:text-amber-400"}
+                title={property.is_premium ? "Remover do Premium" : "Marcar como Premium"}
+              >
+                {togglingPremiumId === property.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Crown className={`w-4 h-4 ${property.is_premium ? "fill-amber-400" : ""}`} />
+                )}
+              </Button>
+
               <Link href={`/imoveis/${property.id}`}>
                 <Button
                   variant="ghost"

@@ -65,17 +65,17 @@ export default function PremiumPage() {
 
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              Imóveis de Alto Padrão
+              Imóveis Selecionados
             </span>
             <br />
             <span className="text-amber-100/90 text-3xl md:text-4xl">
-              acima de R$10 milhões
+              para um público exclusivo
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-amber-100/50 max-w-2xl mx-auto mb-12 leading-relaxed">
-            Uma experiência exclusiva para imobiliárias premium.
-            Acesse o portfólio mais seleto do mercado imobiliário.
+            Uma curadoria exclusiva para imobiliárias premium.
+            Acesse imóveis selecionados a dedo para clientes exigentes.
           </p>
 
           {/* CTA area based on auth state */}
@@ -154,9 +154,9 @@ export default function PremiumPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-2xl border border-amber-500/10 bg-[hsl(220,20%,7%)]/50 hover:border-amber-500/20 transition-colors">
               <Building2 className="w-10 h-10 text-amber-500 mb-4" />
-              <h3 className="text-lg font-semibold text-amber-100 mb-2">Portfólio Exclusivo</h3>
+              <h3 className="text-lg font-semibold text-amber-100 mb-2">Curadoria Exclusiva</h3>
               <p className="text-sm text-amber-100/40 leading-relaxed">
-                Imóveis selecionados acima de R$10 milhões. Casas, mansões e propriedades de luxo.
+                Imóveis selecionados a dedo pela plataforma. Casas, mansões e propriedades de destaque.
               </p>
             </div>
             <div className="p-6 rounded-2xl border border-amber-500/10 bg-[hsl(220,20%,7%)]/50 hover:border-amber-500/20 transition-colors">
