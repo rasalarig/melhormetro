@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Share2, Eye, Maximize, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { MapPin, Share2, Eye, Maximize, Play } from "lucide-react";
 import { LikeButton } from "@/components/like-button";
 import { ReimaginePanelTrigger, ReimaginePanelDialog } from "@/components/reimagine-panel";
 import { useEngagement } from "@/hooks/use-engagement";
@@ -75,15 +75,6 @@ export function PropertyReel({
   const imageUrls = mediaUrls;
 
   const hasMultipleImages = imageUrls.length > 1;
-
-  // Navigation handlers
-  const goToNext = useCallback(() => {
-    setCurrentImageIndex((prev) => Math.min(prev + 1, imageUrls.length - 1));
-  }, [imageUrls.length]);
-
-  const goToPrev = useCallback(() => {
-    setCurrentImageIndex((prev) => Math.max(prev - 1, 0));
-  }, []);
 
   // Touch swipe handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -275,42 +266,22 @@ export function PropertyReel({
       {/* Dark gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 z-10" />
 
-      {/* Dot indicators - top area to avoid overlapping content */}
+      {/* Dot indicators - TikTok style, top area */}
       {hasMultipleImages && (
         <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 flex gap-1.5">
           {imageUrls.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentImageIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              className={`rounded-full transition-all duration-500 ease-out ${
                 index === currentImageIndex
-                  ? "bg-white"
-                  : "bg-white/40"
+                  ? "w-6 h-2 bg-white"
+                  : "w-2 h-2 bg-white/40 hover:bg-white/60"
               }`}
               aria-label={`Ir para imagem ${index + 1}`}
             />
           ))}
         </div>
-      )}
-
-      {/* Desktop navigation arrows */}
-      {hasMultipleImages && (
-        <>
-          <button
-            onClick={goToPrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm hidden md:flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-            aria-label="Imagem anterior"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm hidden md:flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-            aria-label="Pr\u00f3xima imagem"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </>
       )}
 
       {/* Property type badge */}
