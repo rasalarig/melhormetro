@@ -80,26 +80,6 @@ interface LinkEntry {
   is_cover: boolean;
 }
 
-interface VideoUrlEntry {
-  url: string;
-  platform: string;
-}
-
-const SUPPORTED_VIDEO_PLATFORMS = [
-  { pattern: /(?:youtube\.com\/(?:watch|embed|shorts)|youtu\.be\/)/i, name: 'YouTube' },
-  { pattern: /tiktok\.com/i, name: 'TikTok' },
-  { pattern: /instagram\.com\/(?:reels?|p)\//i, name: 'Instagram' },
-  { pattern: /vimeo\.com\/\d+/i, name: 'Vimeo' },
-];
-
-function getVideoUrlPlatform(url: string): string | null {
-  try { new URL(url); } catch { return null; }
-  for (const p of SUPPORTED_VIDEO_PLATFORMS) {
-    if (p.pattern.test(url)) return p.name;
-  }
-  return null;
-}
-
 interface PropertyImage {
   id: number;
   filename: string;
@@ -145,11 +125,6 @@ export default function EditarImovelPage() {
   const [mediaEntries, setMediaEntries] = useState<MediaEntry[]>([]);
   const [linkEntries, setLinkEntries] = useState<LinkEntry[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
-
-  // Video URLs
-  const [videoUrls, setVideoUrls] = useState<VideoUrlEntry[]>([]);
-  const [videoUrlInput, setVideoUrlInput] = useState("");
-  const [videoUrlError, setVideoUrlError] = useState("");
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
@@ -210,31 +185,11 @@ export default function EditarImovelPage() {
         const chars = data.characteristics || [];
         setSelectedChars(Array.isArray(chars) ? chars : []);
 
-        // Images - load existing as link entries, separate video URLs
+        // Images - load existing as link entries
         const images: PropertyImage[] = data.images || [];
-        const videoPatterns = [
-          /(?:youtube\.com|youtu\.be)/i,
-          /tiktok\.com/i,
-          /instagram\.com\/(?:reel|p)\//i,
-          /vimeo\.com\/\d+/i,
-        ];
-        const existingVideos: VideoUrlEntry[] = [];
-        const nonVideoImages: PropertyImage[] = [];
 
-        for (const img of images) {
-          const isExtVideo = videoPatterns.some((p) => p.test(img.filename));
-          if (isExtVideo) {
-            const platform = getVideoUrlPlatform(img.filename) || 'Video';
-            existingVideos.push({ url: img.filename, platform });
-          } else {
-            nonVideoImages.push(img);
-          }
-        }
-
-        setVideoUrls(existingVideos);
-
-        if (nonVideoImages.length > 0) {
-          const existingLinks: LinkEntry[] = nonVideoImages.map((img) => ({
+        if (images.length > 0) {
+          const existingLinks: LinkEntry[] = images.map((img) => ({
             url: img.filename,
             is_cover: img.is_cover === 1,
           }));
@@ -358,27 +313,6 @@ export default function EditarImovelPage() {
     setMediaEntries((prev) =>
       prev.map((e, i) => ({ ...e, is_cover: i === index }))
     );
-  }
-
-  function handleAddVideoUrl() {
-    setVideoUrlError("");
-    const url = videoUrlInput.trim();
-    if (!url) return;
-    const platform = getVideoUrlPlatform(url);
-    if (!platform) {
-      setVideoUrlError("URL não suportada. Use YouTube, TikTok, Instagram ou Vimeo.");
-      return;
-    }
-    if (videoUrls.some((v) => v.url === url)) {
-      setVideoUrlError("Este vídeo já foi adicionado.");
-      return;
-    }
-    setVideoUrls((prev) => [...prev, { url, platform }]);
-    setVideoUrlInput("");
-  }
-
-  function removeVideoUrl(index: number) {
-    setVideoUrls((prev) => prev.filter((_, i) => i !== index));
   }
 
   // Drag and drop handlers
@@ -532,7 +466,6 @@ export default function EditarImovelPage() {
           characteristics: selectedChars.length > 0 ? selectedChars : null,
           details: Object.keys(details).length > 0 ? details : null,
           imageUrls: allImageUrls,
-          video_urls: videoUrls.map((v) => v.url),
         }),
       });
 
@@ -1113,80 +1046,6 @@ export default function EditarImovelPage() {
                   <Plus className="w-4 h-4" />
                   Adicionar mais fotos
                 </button>
-              </div>
-            )}
-          </div>
-
-          {/* Section: Video URLs */}
-          <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
-            <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2 flex items-center gap-2">
-              <Video className="w-4 h-4" />
-              Vídeos Externos (opcional)
-            </h2>
-
-            <p className="text-xs text-muted-foreground">
-              Cole URLs de vídeos do YouTube, TikTok, Instagram Reels ou Vimeo.
-            </p>
-
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={videoUrlInput}
-                onChange={(e) => {
-                  setVideoUrlInput(e.target.value);
-                  setVideoUrlError("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddVideoUrl();
-                  }
-                }}
-                placeholder="Cole a URL do vídeo (YouTube, TikTok, Instagram...)"
-                className={inputClass}
-              />
-              <Button
-                type="button"
-                onClick={handleAddVideoUrl}
-                variant="outline"
-                className="flex-shrink-0 px-4 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Adicionar
-              </Button>
-            </div>
-
-            {videoUrlError && (
-              <p className="text-xs text-red-400">{videoUrlError}</p>
-            )}
-
-            {videoUrls.length > 0 && (
-              <div className="space-y-2">
-                {videoUrls.map((entry, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-border/30 bg-background/50"
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                      <Play className="w-4 h-4 text-red-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground">
-                        {entry.platform}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {entry.url}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeVideoUrl(index)}
-                      className="flex-shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
               </div>
             )}
           </div>
