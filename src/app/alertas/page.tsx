@@ -11,7 +11,7 @@ export default function AlertasPage() {
   return (
     <Suspense
       fallback={
-        <div className="pt-40 pb-16 px-4 text-center text-muted-foreground">
+        <div className="pt-16 pb-16 px-4 text-center text-muted-foreground">
           Carregando...
         </div>
       }

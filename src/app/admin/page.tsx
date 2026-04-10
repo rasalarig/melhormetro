@@ -39,7 +39,7 @@ export default async function AdminPage() {
   const newLeadsCount = await getNewLeadsCount();
 
   return (
-    <div className="pt-40 pb-16 px-4">
+    <div className="pt-16 pb-16 px-4">
       <div className="container mx-auto max-w-5xl">
         <div className="flex items-center justify-between mb-8">
           <div>

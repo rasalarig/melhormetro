@@ -267,7 +267,7 @@ export function SearchPageClient() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="pt-40 pb-24 px-4">
+    <div className="pt-16 pb-24 px-4">
       <div className="container mx-auto max-w-5xl">
         {/* Back link */}
         <Link

@@ -67,7 +67,7 @@ export default function ConfiguracoesPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="pt-40 pb-16 px-4 flex items-center justify-center min-h-screen">
+      <div className="pt-16 pb-16 px-4 flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
@@ -76,7 +76,7 @@ export default function ConfiguracoesPage() {
   if (!user) return null;
 
   return (
-    <div className="pt-40 pb-16 px-4">
+    <div className="pt-16 pb-16 px-4">
       <div className="container mx-auto max-w-3xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">

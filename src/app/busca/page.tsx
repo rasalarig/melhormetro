@@ -11,7 +11,7 @@ export default function BuscaPage() {
   return (
     <Suspense
       fallback={
-        <div className="pt-40 pb-16 px-4 text-center">Carregando...</div>
+        <div className="pt-16 pb-16 px-4 text-center">Carregando...</div>
       }
     >
       <SearchPageClient />

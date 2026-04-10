@@ -399,14 +399,14 @@ export function AlertsPageClient() {
 
   if (authLoading || (!user && !authLoading)) {
     return (
-      <div className="pt-40 pb-16 px-4 text-center text-muted-foreground">
+      <div className="pt-16 pb-16 px-4 text-center text-muted-foreground">
         Carregando...
       </div>
     );
   }
 
   return (
-    <div className="pt-40 pb-16 px-4">
+    <div className="pt-16 pb-16 px-4">
       <div className="container mx-auto max-w-3xl">
         <div className="mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2">

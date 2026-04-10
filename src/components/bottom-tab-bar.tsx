@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, SlidersHorizontal, Heart, Home, User, MessageCircle, LogOut } from "lucide-react";
+import { Film, SlidersHorizontal, Heart, Home, User, MessageCircle, LogOut, Users } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { useState, useEffect, useRef } from "react";
 
@@ -96,6 +96,14 @@ export function BottomTabBar() {
                   {unreadMsgCount > 99 ? "99" : unreadMsgCount}
                 </span>
               )}
+            </Link>
+            <Link
+              href="/vender/leads"
+              onClick={() => setShowProfile(false)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm font-medium mb-2"
+            >
+              <Users className="w-4 h-4" />
+              Leads
             </Link>
             <button
               onClick={async () => {

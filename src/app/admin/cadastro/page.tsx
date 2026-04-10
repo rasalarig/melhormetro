@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function CadastroPage() {
   return (
-    <div className="pt-40 pb-16 px-4">
+    <div className="pt-16 pb-16 px-4">
       <div className="container mx-auto max-w-3xl">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">Cadastrar Novo Imóvel</h1>
         <p className="text-muted-foreground mb-8">

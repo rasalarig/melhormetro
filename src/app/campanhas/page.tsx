@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default function Campanhas() {
   return (
-    <div className="container mx-auto px-4 py-8 pt-40 pb-24">
+    <div className="container mx-auto px-4 py-8 pt-16 pb-24">
       <CampaignsPage />
     </div>
   );

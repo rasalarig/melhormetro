@@ -84,21 +84,21 @@ export function Navbar() {
     <>
     {/* Mobile Header */}
     <header className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-      <div className="flex items-center justify-center h-32">
-        <Link href="/">
-          <img src="/logo_novo.png" alt="MelhorMetro" className="h-28 w-auto" />
+      <div className="flex items-center justify-center h-14">
+        <Link href="/" className="h-12 overflow-hidden flex items-center justify-center">
+          <img src="/logo_novo.png" alt="MelhorMetro" className="h-36 w-auto" />
         </Link>
       </div>
     </header>
 
     {/* Desktop Header */}
     <header className="hidden md:block fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto px-4 h-40 flex items-center justify-between">
-        <Link href="/" className="flex items-center group flex-shrink-0">
+      <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center group flex-shrink-0 h-12 overflow-hidden">
           <img
             src="/logo_novo.png"
             alt="MelhorMetro"
-            className="h-72 w-auto"
+            className="h-36 w-auto"
           />
         </Link>
 

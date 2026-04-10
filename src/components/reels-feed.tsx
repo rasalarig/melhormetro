@@ -34,7 +34,7 @@ export function ReelsFeed() {
     async function fetchReels() {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+        const timeout = setTimeout(() => controller.abort(), 20000);
         const res = await fetch("/api/reels", { signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) throw new Error("Failed to fetch");
@@ -101,7 +101,7 @@ export function ReelsFeed() {
 
   // Reels mode — fullscreen fixed overlay when there ARE properties
   return (
-    <div className="fixed inset-0 md:top-40 bg-black z-40">
+    <div className="fixed inset-0 top-14 bg-black z-40">
       <div className="h-full bg-black flex items-center justify-center overflow-hidden">
         <div
           className="relative w-full h-full md:h-full md:aspect-[9/16] md:max-w-[calc(100dvh*9/16)] md:rounded-3xl md:border md:border-white/10 md:shadow-2xl md:overflow-hidden"

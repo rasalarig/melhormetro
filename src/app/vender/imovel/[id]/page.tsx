@@ -497,7 +497,7 @@ export default function EditarImovelPage() {
   if (loadError) {
     return (
       <div className="min-h-screen bg-background pb-24 md:pb-8">
-        <div className="container mx-auto px-4 pt-40 md:pt-40 max-w-lg">
+        <div className="container mx-auto px-4 pt-16 max-w-lg">
           <div className="rounded-xl border border-border/50 bg-card p-8 text-center space-y-4">
             <h2 className="text-xl font-bold text-foreground">{loadError}</h2>
             <Link href="/vender/meus-imoveis">
@@ -517,7 +517,7 @@ export default function EditarImovelPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-background pb-24 md:pb-8">
-        <div className="container mx-auto px-4 pt-40 md:pt-40 max-w-lg">
+        <div className="container mx-auto px-4 pt-16 max-w-lg">
           <div className="rounded-xl border border-border/50 bg-card p-8 text-center space-y-4">
             <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto" />
             <h2 className="text-xl font-bold text-foreground">
@@ -549,7 +549,7 @@ export default function EditarImovelPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8">
-      <div className="container mx-auto px-4 pt-40 md:pt-40 max-w-2xl">
+      <div className="container mx-auto px-4 pt-16 max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mb-4">

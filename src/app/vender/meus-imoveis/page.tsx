@@ -179,7 +179,7 @@ export default function MeusImoveisPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8">
-      <div className="container mx-auto px-4 pt-40 md:pt-40 max-w-5xl">
+      <div className="container mx-auto px-4 pt-16 max-w-5xl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>

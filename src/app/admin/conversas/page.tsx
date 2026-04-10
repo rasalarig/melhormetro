@@ -188,7 +188,7 @@ export default function AdminConversasPage() {
   };
 
   return (
-    <div className="pt-40 pb-16 px-4">
+    <div className="pt-16 pb-16 px-4">
       <div className="container mx-auto max-w-5xl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

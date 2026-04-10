@@ -79,7 +79,7 @@ export function FavoritesPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="pt-40 pb-16 px-4">
+      <div className="pt-16 pb-16 px-4">
         <div className="container mx-auto max-w-6xl">
           <h1 className="text-2xl md:text-3xl font-bold mb-8">Meus Favoritos</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,7 +98,7 @@ export function FavoritesPage() {
   if (!user) return null;
 
   return (
-    <div className="pt-40 pb-16 px-4">
+    <div className="pt-16 pb-16 px-4">
       <div className="container mx-auto max-w-6xl">
         <div className="flex items-center gap-3 mb-8">
           <Heart className="w-7 h-7 text-emerald-400" />
