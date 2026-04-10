@@ -266,7 +266,7 @@ function MensagensContent() {
   const totalUnread = conversations.reduce((sum, c) => sum + c.unread_count, 0);
 
   return (
-    <div className="min-h-screen bg-background pt-0 md:pt-16">
+    <div className="min-h-screen bg-background pt-14 md:pt-16">
       <div className="h-[calc(100dvh-4rem)] md:h-[calc(100dvh-7rem)] flex flex-col md:flex-row max-w-6xl mx-auto md:border-x border-border/40">
         {/* Left Panel - Conversation List */}
         <div
