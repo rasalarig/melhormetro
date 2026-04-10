@@ -99,6 +99,7 @@ export async function PUT(
       longitude,
       imageUrls,
       video_urls,
+      media_status,
     } = body;
 
     await query(
@@ -117,8 +118,9 @@ export async function PUT(
         details = COALESCE($12, details),
         latitude = COALESCE($13, latitude),
         longitude = COALESCE($14, longitude),
+        media_status = COALESCE($15, media_status),
         updated_at = NOW()
-      WHERE id = $15`,
+      WHERE id = $16`,
       [
         title || null,
         description || null,
@@ -134,6 +136,7 @@ export async function PUT(
         details ? JSON.stringify(details) : null,
         latitude !== undefined ? latitude : null,
         longitude !== undefined ? longitude : null,
+        media_status || null,
         params.id,
       ]
     );

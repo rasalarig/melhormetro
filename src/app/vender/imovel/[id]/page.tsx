@@ -398,18 +398,12 @@ export default function EditarImovelPage() {
     setSubmitting(true);
 
     try {
-      let allImageUrls: { url: string; is_cover: boolean }[] = [];
-
-      // Existing items (already have URLs)
+      // Separate existing URLs from new files
       const existingItems = mediaItems.filter((e) => e.url && !e.file);
-      allImageUrls = existingItems.map((e) => ({ url: e.url, is_cover: e.is_cover }));
+      const allImageUrls = existingItems.map((e) => ({ url: e.url, is_cover: e.is_cover }));
 
-      // Upload new files and append
-      const hasNewFiles = mediaItems.some((e) => e.file);
-      if (hasNewFiles) {
-        const uploaded = await uploadFiles();
-        allImageUrls = [...allImageUrls, ...uploaded];
-      }
+      const filesToUpload = mediaItems.filter((e) => e.file);
+      const hasFilesToUpload = filesToUpload.length > 0;
 
       const details: Record<string, number> = {};
       if (showDetails) {
@@ -435,6 +429,7 @@ export default function EditarImovelPage() {
           characteristics: selectedChars.length > 0 ? selectedChars : null,
           details: Object.keys(details).length > 0 ? details : null,
           imageUrls: allImageUrls,
+          media_status: hasFilesToUpload ? "processing" : undefined,
         }),
       });
 
@@ -443,6 +438,16 @@ export default function EditarImovelPage() {
       if (!res.ok) {
         setError(data.error || "Erro ao salvar alterações.");
         return;
+      }
+
+      // Fire background upload (don't await)
+      if (hasFilesToUpload) {
+        const bgFormData = new FormData();
+        bgFormData.append("propertyId", propertyId);
+        for (const entry of filesToUpload) {
+          bgFormData.append("files", entry.file!);
+        }
+        fetch("/api/upload/background", { method: "POST", body: bgFormData });
       }
 
       setSuccess(true);
@@ -798,12 +803,29 @@ export default function EditarImovelPage() {
                       }`}
                     >
                       {isVideo ? (
-                        <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-                          <Play className="w-8 h-8 text-emerald-500/60" />
-                          <p className="absolute bottom-1 left-1 right-1 text-[9px] text-muted-foreground truncate text-center">
-                            {entry.file?.name || "Vídeo"}
-                          </p>
-                        </div>
+                        displayUrl && !entry.file ? (
+                          <div className="w-full h-full relative bg-zinc-900">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <video
+                              src={displayUrl}
+                              className="w-full h-full object-cover"
+                              preload="metadata"
+                              muted
+                              playsInline
+                              crossOrigin="anonymous"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <Play className="w-8 h-8 text-white/70" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                            <Play className="w-8 h-8 text-emerald-500/60" />
+                            <p className="absolute bottom-1 left-1 right-1 text-[9px] text-muted-foreground truncate text-center">
+                              {entry.file?.name || "Vídeo"}
+                            </p>
+                          </div>
+                        )
                       ) : displayUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img

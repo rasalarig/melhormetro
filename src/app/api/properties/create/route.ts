@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       details,
       imageUrls,
       video_urls,
+      media_status,
     } = body;
 
     if (!title || !description || !price || !area || !type || !address || !city) {
@@ -53,8 +54,8 @@ export async function POST(request: NextRequest) {
 
     // Auto-set seller_id from authenticated user
     const property = await getOne(
-      `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, seller_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, seller_id, media_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
         title,
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
         characteristics ? JSON.stringify(characteristics) : null,
         details ? JSON.stringify(details) : null,
         seller.id,
+        media_status || 'ready',
       ]
     );
 
