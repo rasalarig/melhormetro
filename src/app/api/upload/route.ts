@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
 import { randomUUID } from 'crypto';
+import { uploadToR2 } from '@/lib/r2';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_SIZE_IMAGE = 10 * 1024 * 1024; // 10MB
+const MAX_SIZE_VIDEO = 100 * 1024 * 1024; // 100MB
 const ALLOWED_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm'];
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
-    if (!existsSync(UPLOAD_DIR)) {
-      await mkdir(UPLOAD_DIR, { recursive: true });
-    }
-
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
 
@@ -25,32 +22,32 @@ export async function POST(request: NextRequest) {
     const results = [];
 
     for (const file of files) {
-      if (file.size > MAX_SIZE) {
-        return NextResponse.json(
-          { error: `Arquivo ${file.name} excede o limite de 10MB` },
-          { status: 400 }
-        );
-      }
-
       const isImage = ALLOWED_IMAGE.includes(file.type);
       const isVideo = ALLOWED_VIDEO.includes(file.type);
 
       if (!isImage && !isVideo) {
         return NextResponse.json(
-          { error: `Tipo de arquivo nao permitido: ${file.type}` },
+          { error: `Tipo de arquivo não permitido: ${file.type}` },
+          { status: 400 }
+        );
+      }
+
+      const maxSize = isVideo ? MAX_SIZE_VIDEO : MAX_SIZE_IMAGE;
+      if (file.size > maxSize) {
+        return NextResponse.json(
+          { error: `Arquivo ${file.name} excede o limite de ${isVideo ? '100MB' : '10MB'}` },
           { status: 400 }
         );
       }
 
       const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-      const filename = `${randomUUID()}.${ext}`;
-      const filepath = path.join(UPLOAD_DIR, filename);
+      const key = `${randomUUID()}.${ext}`;
 
       const bytes = await file.arrayBuffer();
-      await writeFile(filepath, Buffer.from(bytes));
+      const url = await uploadToR2(Buffer.from(bytes), key, file.type);
 
       results.push({
-        url: `/uploads/${filename}`,
+        url,
         originalName: file.name,
         type: isImage ? 'image' : 'video',
       });

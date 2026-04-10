@@ -64,7 +64,8 @@ const labelClass = "block text-sm font-medium text-foreground mb-1.5";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE_IMAGE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE_VIDEO = 100 * 1024 * 1024; // 100MB
 
 interface MediaEntry {
   url: string;
@@ -259,16 +260,17 @@ export default function EditarImovelPage() {
     const newEntries: MediaEntry[] = [];
 
     for (const file of Array.from(files)) {
-      if (file.size > MAX_FILE_SIZE) {
-        setError(`Arquivo ${file.name} excede o limite de 10MB`);
-        continue;
-      }
-
       const isImage = ACCEPTED_IMAGE_TYPES.includes(file.type);
       const isVideo = ACCEPTED_VIDEO_TYPES.includes(file.type);
 
       if (!isImage && !isVideo) {
         setError(`Tipo de arquivo não permitido: ${file.name}`);
+        continue;
+      }
+
+      const maxSize = isVideo ? MAX_FILE_SIZE_VIDEO : MAX_FILE_SIZE_IMAGE;
+      if (file.size > maxSize) {
+        setError(`Arquivo ${file.name} excede o limite de ${isVideo ? "100MB" : "10MB"}`);
         continue;
       }
 
@@ -428,18 +430,14 @@ export default function EditarImovelPage() {
     try {
       let allImageUrls: { url: string; is_cover: boolean }[] = [];
 
-      // Upload files if in upload mode
-      if (mediaTab === "upload" && mediaEntries.length > 0) {
-        allImageUrls = await uploadFiles();
-      }
+      // Always include existing link entries (existing images)
+      const validLinks = linkEntries.filter((e) => e.url.trim());
+      allImageUrls = validLinks.map((e) => ({ url: e.url.trim(), is_cover: e.is_cover }));
 
-      // Add link entries if in link mode
-      if (mediaTab === "link") {
-        const validLinks = linkEntries.filter((e) => e.url.trim());
-        allImageUrls = [
-          ...allImageUrls,
-          ...validLinks.map((e) => ({ url: e.url.trim(), is_cover: e.is_cover })),
-        ];
+      // Upload new files and append
+      if (mediaTab === "upload" && mediaEntries.length > 0) {
+        const uploaded = await uploadFiles();
+        allImageUrls = [...allImageUrls, ...uploaded];
       }
 
       const details: Record<string, number> = {};
