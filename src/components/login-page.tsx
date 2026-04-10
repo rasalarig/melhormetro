@@ -77,14 +77,14 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-start md:items-center justify-center px-4 pt-4 md:pt-16 pb-24 md:pb-4 overflow-y-auto">
+    <div className="min-h-screen px-4 pt-20 md:pt-44 pb-28 md:pb-4">
       {/* Background decoration */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-600/5 rounded-full blur-3xl" />
       </div>
 
-      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border-border/50">
+      <Card className="w-full max-w-md mx-auto bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center space-y-4 pb-2">
           {/* Logo */}
           <div className="flex justify-center">
