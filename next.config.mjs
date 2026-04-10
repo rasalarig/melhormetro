@@ -9,7 +9,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['pg', '@anthropic-ai/sdk', 'openai'],
+    serverComponentsExternalPackages: ['pg', '@anthropic-ai/sdk', 'openai', 'fluent-ffmpeg', '@ffmpeg-installer/ffmpeg'],
     workerThreads: false,
     cpus: 1,
   },

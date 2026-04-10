@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { uploadToR2 } from '@/lib/r2';
+import { convertToMp4 } from '@/lib/convert-video';
 
 const MAX_SIZE_IMAGE = 10 * 1024 * 1024; // 10MB
 const MAX_SIZE_VIDEO = 100 * 1024 * 1024; // 100MB
@@ -8,7 +9,7 @@ const ALLOWED_IMAGE = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm'];
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,11 +41,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-      const key = `${randomUUID()}.${ext}`;
-
       const bytes = await file.arrayBuffer();
-      const url = await uploadToR2(Buffer.from(bytes), key, file.type);
+      let buffer = Buffer.from(bytes);
+      const originalExt = file.name.split('.').pop()?.toLowerCase() || 'bin';
+
+      let key: string;
+      let contentType = file.type;
+
+      if (isVideo && originalExt !== 'mp4') {
+        // Convert to MP4 for universal browser compatibility
+        const converted = await convertToMp4(buffer, originalExt);
+        buffer = converted.buffer;
+        contentType = converted.contentType;
+        key = `${randomUUID()}.mp4`;
+      } else {
+        key = `${randomUUID()}.${originalExt}`;
+      }
+
+      const url = await uploadToR2(buffer, key, contentType);
 
       results.push({
         url,
