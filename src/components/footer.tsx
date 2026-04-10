@@ -8,13 +8,13 @@ export function Footer() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center">
-            <div className="h-18 w-48 overflow-hidden relative">
+            <div className="h-12 w-48 overflow-hidden relative">
               <Image
                 src="/logo_novo.png"
                 alt="MelhorMetro"
                 width={1536}
                 height={1024}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-auto"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-auto"
               />
             </div>
           </div>
