@@ -136,6 +136,8 @@ export function PropertyDetail({ property }: PropertyProps) {
                     muted
                     loop
                     playsInline
+                    preload="auto"
+                    crossOrigin="anonymous"
                   />
                 ) : (
                   <div className="absolute inset-0">

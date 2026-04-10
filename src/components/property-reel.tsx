@@ -240,7 +240,9 @@ export function PropertyReel({
                   muted
                   loop
                   playsInline
+                  preload="auto"
                   autoPlay={index === currentImageIndex}
+                  crossOrigin="anonymous"
                 />
               );
             }
