@@ -101,7 +101,7 @@ export function ReelsFeed() {
 
   // Reels mode — fullscreen fixed overlay when there ARE properties
   return (
-    <div className="fixed inset-0 bg-black z-40">
+    <div className="fixed inset-0 md:top-28 bg-black z-40">
       <div className="h-full bg-black flex items-center justify-center overflow-hidden">
         <div
           className="relative w-full h-full md:h-full md:aspect-[9/16] md:max-w-[calc(100dvh*9/16)] md:rounded-3xl md:border md:border-white/10 md:shadow-2xl md:overflow-hidden"
