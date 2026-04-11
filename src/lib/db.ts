@@ -209,6 +209,9 @@ export async function initDB() {
 
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS approved TEXT NOT NULL DEFAULT 'pending' CHECK(approved IN ('pending', 'approved', 'rejected'));
 
+    -- Auto-approve existing properties that were created before the approval system
+    UPDATE properties SET approved = 'approved' WHERE approved = 'pending' AND created_at < '2026-04-11';
+
     CREATE TABLE IF NOT EXISTS contact_violations (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
