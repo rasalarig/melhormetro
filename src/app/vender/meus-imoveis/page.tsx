@@ -19,6 +19,10 @@ import {
   ThermometerSun,
   ArrowRight,
   Play,
+  Sparkles,
+  Copy,
+  Check,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { isVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
@@ -78,6 +82,47 @@ function getCoverImage(images: PropertyImage[]): string | null {
   return (cover || images[0]).filename;
 }
 
+function ScriptSection({
+  title,
+  content,
+  section,
+  copiedSection,
+  onCopy,
+}: {
+  title: string;
+  content: string;
+  section: string;
+  copiedSection: string | null;
+  onCopy: (text: string, section: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border/30 bg-background/50 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20 bg-muted/20">
+        <span className="text-xs font-semibold text-foreground">{title}</span>
+        <button
+          onClick={() => onCopy(content, section)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-emerald-400 transition-colors"
+        >
+          {copiedSection === section ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-400">Copiado!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" />
+              Copiar
+            </>
+          )}
+        </button>
+      </div>
+      <div className="p-4">
+        <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{content}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function MeusImoveisPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -86,6 +131,16 @@ export default function MeusImoveisPage() {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+  const [adScriptPropertyId, setAdScriptPropertyId] = useState<number | null>(null);
+  const [adScriptLoading, setAdScriptLoading] = useState(false);
+  const [adScript, setAdScript] = useState<{
+    target_audience: string;
+    headline: string;
+    portal_description: string;
+    social_media_caption: string;
+    video_script: string;
+  } | null>(null);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   const fetchProperties = useCallback(async () => {
     try {
@@ -154,6 +209,54 @@ export default function MeusImoveisPage() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const generateAdScript = async (property: Property) => {
+    setAdScriptPropertyId(property.id);
+    setAdScriptLoading(true);
+    setAdScript(null);
+    try {
+      const chars = property.description ? [] : [];
+      const res = await fetch("/api/ai/generate-ad-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: property.title,
+          description: property.description,
+          type: property.type,
+          price: property.price,
+          area: property.area,
+          city: property.city,
+          state: property.state,
+          neighborhood: property.neighborhood || "",
+          characteristics: chars,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdScript(data);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setAdScriptLoading(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string, section: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSection(section);
+      setTimeout(() => setCopiedSection(null), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  const closeAdScript = () => {
+    setAdScriptPropertyId(null);
+    setAdScript(null);
+    setAdScriptLoading(false);
   };
 
   // Close dropdown when clicking outside
@@ -336,6 +439,20 @@ export default function MeusImoveisPage() {
                       </Link>
                     </div>
 
+                    {/* AI Script Button */}
+                    <button
+                      onClick={() => generateAdScript(property)}
+                      disabled={adScriptLoading && adScriptPropertyId === property.id}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-colors text-xs font-medium disabled:opacity-50"
+                    >
+                      {adScriptLoading && adScriptPropertyId === property.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+                      {adScriptLoading && adScriptPropertyId === property.id ? "Gerando roteiro..." : "Gerar Roteiro de Anúncio com IA"}
+                    </button>
+
                     {/* Actions */}
                     <div className="flex items-center gap-2 pt-1">
                       <Link href={`/imoveis/${property.id}`} className="flex-1">
@@ -453,6 +570,90 @@ export default function MeusImoveisPage() {
             <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
           </div>
         </Link>
+
+        {/* Ad Script Modal */}
+        {adScriptPropertyId && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 pt-20 overflow-y-auto">
+            <div className="w-full max-w-2xl rounded-2xl border border-border/50 bg-card shadow-2xl">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-5 border-b border-border/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-foreground">Roteiro de Anúncio</h2>
+                    <p className="text-xs text-muted-foreground">Gerado por IA especialista em marketing imobiliário</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeAdScript}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                {adScriptLoading ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                    <p className="text-sm text-muted-foreground">Analisando seu imóvel e gerando roteiro personalizado...</p>
+                  </div>
+                ) : adScript ? (
+                  <>
+                    {/* Target Audience */}
+                    <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4">
+                      <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1">Público-alvo</p>
+                      <p className="text-sm text-foreground">{adScript.target_audience}</p>
+                    </div>
+
+                    {/* Headline */}
+                    <ScriptSection
+                      title="Título de Impacto"
+                      content={adScript.headline}
+                      section="headline"
+                      copiedSection={copiedSection}
+                      onCopy={copyToClipboard}
+                    />
+
+                    {/* Portal Description */}
+                    <ScriptSection
+                      title="Descrição para Portais (OLX, ZAP, VivaReal)"
+                      content={adScript.portal_description}
+                      section="portal"
+                      copiedSection={copiedSection}
+                      onCopy={copyToClipboard}
+                    />
+
+                    {/* Social Media */}
+                    <ScriptSection
+                      title="Post para Instagram / Facebook"
+                      content={adScript.social_media_caption}
+                      section="social"
+                      copiedSection={copiedSection}
+                      onCopy={copyToClipboard}
+                    />
+
+                    {/* Video Script */}
+                    <ScriptSection
+                      title="Roteiro de Vídeo (Reels / TikTok)"
+                      content={adScript.video_script}
+                      section="video"
+                      copiedSection={copiedSection}
+                      onCopy={copyToClipboard}
+                    />
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground text-sm">
+                    Erro ao gerar roteiro. Tente novamente.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
