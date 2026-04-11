@@ -96,7 +96,7 @@ export default function PremiumImoveisPage() {
                   <div className="aspect-[4/3] relative overflow-hidden bg-[hsl(220,20%,10%)]">
                     {property.coverImage ? (
                       <img
-                        src={`/uploads/${property.coverImage}`}
+                        src={property.coverImage.startsWith("http") ? property.coverImage : `/uploads/${property.coverImage}`}
                         alt={property.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />

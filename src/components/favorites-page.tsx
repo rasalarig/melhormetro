@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Heart, Maximize } from "lucide-react";
+import { Heart, Maximize, Play } from "lucide-react";
+import { isVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
 import { Badge } from "@/components/ui/badge";
 import { LikeButton } from "@/components/like-button";
 import { FavoritesCompareChat } from "@/components/favorites-compare-chat";
@@ -137,10 +138,25 @@ export function FavoritesPage() {
                 {/* Image */}
                 <Link href={`/imoveis/${property.id}`}>
                   <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-emerald-900/30 to-teal-900/30">
-                    {property.coverImage ? (
+                    {property.coverImage && isVideoUrl(resolveMediaUrl(property.coverImage)) ? (
+                      <div className="relative w-full h-full">
+                        <video
+                          src={resolveMediaUrl(property.coverImage)}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                            <Play className="w-5 h-5 text-white ml-0.5" fill="white" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : property.coverImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`/uploads/${property.coverImage}`}
+                        src={resolveMediaUrl(property.coverImage)}
                         alt={property.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />

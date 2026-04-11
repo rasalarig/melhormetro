@@ -86,7 +86,7 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 function MatchCard({ match }: { match: AlertMatch }) {
-  const imageUrl = match.image ? `/uploads/${match.image}` : null;
+  const imageUrl = match.image ? (match.image.startsWith("http") ? match.image : `/uploads/${match.image}`) : null;
 
   return (
     <div className="flex gap-4 p-4 rounded-lg bg-background/50 border border-border/30 hover:border-emerald-500/30 transition-colors">
