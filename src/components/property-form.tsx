@@ -209,7 +209,10 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
   // Suggested characteristics for quick-add
   const suggestedTags = [
     "plano",
-    "aclive",
+    "leve aclive",
+    "acentuado aclive",
+    "leve declive",
+    "acentuado declive",
     "esquina",
     "condomínio fechado",
     "segurança 24h",
@@ -330,7 +333,9 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
               className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500"
             >
               <option value="terreno">Terreno</option>
+              <option value="terreno_condominio">Terreno em Condomínio</option>
               <option value="casa">Casa</option>
+              <option value="casa_condominio">Casa em Condomínio</option>
               <option value="apartamento">Apartamento</option>
               <option value="comercial">Comercial</option>
               <option value="rural">Rural</option>

@@ -73,8 +73,10 @@ export function countActiveFilters(f: ManualFilters): number {
 
 const PROPERTY_TYPES = [
   { value: "casa", label: "Casa" },
+  { value: "casa_condominio", label: "Casa em Condomínio" },
   { value: "apartamento", label: "Apartamento" },
   { value: "terreno", label: "Terreno" },
+  { value: "terreno_condominio", label: "Terreno em Condomínio" },
   { value: "comercial", label: "Comercial" },
   { value: "rural", label: "Rural" },
 ];
@@ -101,6 +103,10 @@ const CHARACTERISTICS_OPTIONS = [
   "Salão de festas",
   "Ar condicionado",
   "Energia solar",
+  "Leve aclive",
+  "Acentuado aclive",
+  "Leve declive",
+  "Acentuado declive",
 ];
 
 const SORT_OPTIONS = [

@@ -31,7 +31,9 @@ interface PropertyReelProps {
 
 const typeLabels: Record<string, string> = {
   terreno: "Terreno",
+  terreno_condominio: "Terreno em Condomínio",
   casa: "Casa",
+  casa_condominio: "Casa em Condomínio",
   apartamento: "Apartamento",
   comercial: "Comercial",
   rural: "Rural",
@@ -367,8 +369,8 @@ export function PropertyReel({
           <span className="text-white/70 text-[10px]">Enviar</span>
         </button>
 
-        {/* Reimaginar button - only for images */}
-        {imageUrls[currentImageIndex] && !isVideoUrl(imageUrls[currentImageIndex]) && !isExternalVideoUrl(imageUrls[currentImageIndex]) && (
+        {/* Reimaginar button - only for images, not terrenos */}
+        {imageUrls[currentImageIndex] && !isVideoUrl(imageUrls[currentImageIndex]) && !isExternalVideoUrl(imageUrls[currentImageIndex]) && type !== "terreno" && type !== "terreno_condominio" && (
           <ReimaginePanelTrigger
             variant="reel"
             onClick={() => setShowReimaginePanelOpen(true)}

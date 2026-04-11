@@ -23,7 +23,9 @@ export function PropertyCard({ id, title, price, area, city, state, type, charac
 
   const typeLabels: Record<string, string> = {
     terreno: "Terreno",
+    terreno_condominio: "Terreno em Condomínio",
     casa: "Casa",
+    casa_condominio: "Casa em Condomínio",
     apartamento: "Apartamento",
     comercial: "Comercial",
     rural: "Rural",

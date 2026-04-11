@@ -56,7 +56,9 @@ const statusConfig = {
 
 const typeLabels: Record<string, string> = {
   terreno: "Terreno",
+  terreno_condominio: "Terreno em Condomínio",
   casa: "Casa",
+  casa_condominio: "Casa em Condomínio",
   apartamento: "Apartamento",
   comercial: "Comercial",
   rural: "Rural",

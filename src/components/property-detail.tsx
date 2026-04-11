@@ -88,7 +88,9 @@ export function PropertyDetail({ property }: PropertyProps) {
 
   const typeLabels: Record<string, string> = {
     terreno: "Terreno",
+    terreno_condominio: "Terreno em Condomínio",
     casa: "Casa",
+    casa_condominio: "Casa em Condomínio",
     apartamento: "Apartamento",
     comercial: "Comercial",
     rural: "Rural",
@@ -146,10 +148,12 @@ export function PropertyDetail({ property }: PropertyProps) {
                       alt={property.images[currentImage]?.original_name || property.title}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
-                    <ReimaginePanelTrigger
-                      variant="detail"
-                      onClick={() => setReimagineOpen(true)}
-                    />
+                    {property.type !== "terreno" && property.type !== "terreno_condominio" && (
+                      <ReimaginePanelTrigger
+                        variant="detail"
+                        onClick={() => setReimagineOpen(true)}
+                      />
+                    )}
                   </div>
                 );
               })()}
@@ -412,7 +416,7 @@ export function PropertyDetail({ property }: PropertyProps) {
         onClose={() => setShowInterest(false)}
       />
 
-      {property.images.length > 0 && (() => {
+      {property.images.length > 0 && property.type !== "terreno" && property.type !== "terreno_condominio" && (() => {
         const currentFilename = property.images[currentImage]?.filename || '';
         const currentUrl = resolveMediaUrl(currentFilename);
         const currentIsVideo = isVideoUrl(currentUrl);

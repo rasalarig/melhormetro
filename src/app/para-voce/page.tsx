@@ -91,11 +91,11 @@ const plans = [
   {
     name: "Starter",
     range: "Até 15 imóveis",
-    price: "R$ 499",
+    price: "R$ 0",
     period: "/mês",
     highlight: false,
-    badge: null,
-    cta: "Assinar",
+    badge: "Grátis por tempo limitado",
+    cta: "Começar Grátis",
     features: [
       "Tudo do Grátis",
       "Leads com temperatura",
@@ -106,11 +106,11 @@ const plans = [
   {
     name: "Profissional",
     range: "Até 50 imóveis",
-    price: "R$ 999",
+    price: "R$ 0",
     period: "/mês",
     highlight: true,
-    badge: "Mais popular",
-    cta: "Assinar",
+    badge: "Grátis por tempo limitado",
+    cta: "Começar Grátis",
     features: [
       "Tudo do Starter",
       "Campanhas de marketing",
@@ -122,11 +122,11 @@ const plans = [
   {
     name: "Imobiliária",
     range: "Ilimitado",
-    price: "R$ 1.700",
+    price: "R$ 0",
     period: "/mês",
     highlight: false,
-    badge: null,
-    cta: "Assinar",
+    badge: "Grátis por tempo limitado",
+    cta: "Começar Grátis",
     features: [
       "Tudo do Profissional",
       "Importação em massa",

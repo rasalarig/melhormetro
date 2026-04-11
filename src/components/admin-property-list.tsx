@@ -53,7 +53,9 @@ export function AdminPropertyList({
 
   const typeLabels: Record<string, string> = {
     terreno: "Terreno",
+    terreno_condominio: "Terreno em Condomínio",
     casa: "Casa",
+    casa_condominio: "Casa em Condomínio",
     apartamento: "Apto",
     comercial: "Comercial",
     rural: "Rural",

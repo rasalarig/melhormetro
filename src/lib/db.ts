@@ -27,7 +27,7 @@ export async function initDB() {
       description TEXT NOT NULL,
       price DOUBLE PRECISION NOT NULL,
       area DOUBLE PRECISION NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('terreno', 'casa', 'apartamento', 'comercial', 'rural')),
+      type TEXT NOT NULL CHECK(type IN ('terreno', 'casa', 'apartamento', 'comercial', 'rural', 'terreno_condominio', 'casa_condominio')),
       address TEXT NOT NULL,
       city TEXT NOT NULL,
       state TEXT NOT NULL DEFAULT 'SP',
