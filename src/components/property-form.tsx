@@ -15,6 +15,7 @@ import {
   Loader2,
   CheckCircle,
   Tag,
+  Sparkles,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -97,6 +98,7 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
   // Images
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const addTag = () => {
     const tag = newTag.trim().toLowerCase();
@@ -133,6 +135,47 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const generateWithAI = async () => {
+    setAiGenerating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/ai/generate-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          area,
+          price,
+          city,
+          state,
+          neighborhood,
+          address,
+          characteristics,
+          bedrooms,
+          bathrooms,
+          garage,
+          pool,
+          gatedCommunity,
+          pavedStreet,
+          currentTitle: title,
+          currentDescription: description,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao gerar com IA");
+      }
+
+      const data = await res.json();
+      if (data.title) setTitle(data.title);
+      if (data.description) setDescription(data.description);
+    } catch {
+      setError("Não foi possível gerar o texto com IA. Tente novamente.");
+    } finally {
+      setAiGenerating(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -274,9 +317,26 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
         </div>
 
         <div>
-          <label className="text-sm text-muted-foreground mb-1 block">
-            Descrição Detalhada *
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm text-muted-foreground">
+              Descrição Detalhada *
+            </label>
+            <Button
+              type="button"
+              onClick={generateWithAI}
+              disabled={aiGenerating}
+              variant="outline"
+              size="sm"
+              className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 gap-1.5 text-xs"
+            >
+              {aiGenerating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              {aiGenerating ? "Gerando..." : "Gerar com IA"}
+            </Button>
+          </div>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -286,8 +346,7 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
             className="bg-secondary/50 border-border/50"
           />
           <p className="text-xs text-muted-foreground mt-1">
-            Dica: Seja detalhista! A IA usa esta descrição para encontrar o
-            imóvel.
+            Dica: Preencha os campos acima (tipo, área, preço, localização) e clique em &quot;Gerar com IA&quot; para criar título e descrição automaticamente.
           </p>
         </div>
 
