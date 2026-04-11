@@ -14,6 +14,7 @@ export default function PremiumLoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -35,6 +36,10 @@ export default function PremiumLoginPage() {
       setError("Senha deve ter pelo menos 6 caracteres");
       return;
     }
+    if (mode === "register" && password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
     if (mode === "register" && !name.trim()) {
       setError("Digite seu nome");
       return;
@@ -43,7 +48,7 @@ export default function PremiumLoginPage() {
     setSubmitting(true);
     try {
       if (mode === "register") {
-        await register(name.trim(), email.trim(), password);
+        await register(name.trim(), email.trim(), password, confirmPassword);
       } else {
         await login(email.trim(), password);
       }
@@ -147,6 +152,26 @@ export default function PremiumLoginPage() {
             </div>
           </div>
 
+          {mode === "register" && (
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-amber-100/70">
+                Confirmar Senha
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-100/30" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Digite a senha novamente"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-10 bg-[hsl(220,20%,4%)] border-amber-500/20 text-amber-100 placeholder:text-amber-100/20 focus-visible:ring-amber-500/50"
+                  disabled={submitting}
+                />
+              </div>
+            </div>
+          )}
+
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <Button
@@ -172,14 +197,14 @@ export default function PremiumLoginPage() {
           {mode === "login" ? (
             <p className="text-sm text-amber-100/40">
               Não tem conta?{" "}
-              <button onClick={() => { setMode("register"); setError(""); }} className="text-amber-400 hover:text-amber-300 font-medium">
+              <button onClick={() => { setMode("register"); setError(""); setConfirmPassword(""); }} className="text-amber-400 hover:text-amber-300 font-medium">
                 Cadastre-se
               </button>
             </p>
           ) : (
             <p className="text-sm text-amber-100/40">
               Já tem conta?{" "}
-              <button onClick={() => { setMode("login"); setError(""); }} className="text-amber-400 hover:text-amber-300 font-medium">
+              <button onClick={() => { setMode("login"); setError(""); setConfirmPassword(""); }} className="text-amber-400 hover:text-amber-300 font-medium">
                 Entrar
               </button>
             </p>

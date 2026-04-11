@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, confirmPassword } = body;
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Nome e obrigatorio' }, { status: 400 });
@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
 
     if (!password || typeof password !== 'string' || password.length < 6) {
       return NextResponse.json({ error: 'Senha deve ter pelo menos 6 caracteres' }, { status: 400 });
+    }
+
+    if (password !== confirmPassword) {
+      return NextResponse.json({ error: 'As senhas não coincidem' }, { status: 400 });
     }
 
     const trimmedEmail = email.trim().toLowerCase();

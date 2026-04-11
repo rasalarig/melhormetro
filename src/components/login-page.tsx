@@ -16,6 +16,7 @@ export function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,6 +40,11 @@ export function LoginPage() {
       return;
     }
 
+    if (mode === "register" && password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
+
     if (mode === "register" && !name.trim()) {
       setError("Digite seu nome");
       return;
@@ -47,7 +53,7 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       if (mode === "register") {
-        await register(name.trim(), email.trim(), password);
+        await register(name.trim(), email.trim(), password, confirmPassword);
       } else {
         await login(email.trim(), password);
       }
@@ -169,6 +175,26 @@ export function LoginPage() {
               </div>
             </div>
 
+            {mode === "register" && (
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+                  Confirmar Senha
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Digite a senha novamente"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10 bg-background/50 border-border/50 focus-visible:ring-emerald-500/50"
+                    disabled={submitting}
+                  />
+                </div>
+              </div>
+            )}
+
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
@@ -199,7 +225,7 @@ export function LoginPage() {
                 Não tem conta?{" "}
                 <button
                   type="button"
-                  onClick={() => { setMode("register"); setError(""); }}
+                  onClick={() => { setMode("register"); setError(""); setConfirmPassword(""); }}
                   className="text-emerald-400 hover:text-emerald-300 font-medium"
                 >
                   Cadastre-se
@@ -210,7 +236,7 @@ export function LoginPage() {
                 Já tem conta?{" "}
                 <button
                   type="button"
-                  onClick={() => { setMode("login"); setError(""); }}
+                  onClick={() => { setMode("login"); setError(""); setConfirmPassword(""); }}
                   className="text-emerald-400 hover:text-emerald-300 font-medium"
                 >
                   Entrar
