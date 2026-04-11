@@ -13,6 +13,9 @@ import {
   Loader2,
   Plus,
   Crown,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,6 +29,7 @@ interface Property {
   state: string;
   status: string;
   is_premium: boolean;
+  approved: string;
   created_at: string;
 }
 
@@ -41,6 +45,7 @@ export function AdminPropertyList({
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [togglingPremiumId, setTogglingPremiumId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [approvingId, setApprovingId] = useState<number | null>(null);
 
   const formatPrice = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -71,6 +76,18 @@ export function AdminPropertyList({
     active: "Ativo",
     inactive: "Inativo",
     sold: "Vendido",
+  };
+
+  const approvalColors: Record<string, string> = {
+    pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    approved: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    rejected: "bg-red-500/10 text-red-400 border-red-500/20",
+  };
+
+  const approvalLabels: Record<string, string> = {
+    pending: "Pendente",
+    approved: "Aprovado",
+    rejected: "Rejeitado",
   };
 
   const handleToggleStatus = async (id: number, currentStatus: string) => {
@@ -128,6 +145,26 @@ export function AdminPropertyList({
     }
   };
 
+  const handleApproval = async (id: number, approved: string) => {
+    setApprovingId(id);
+    try {
+      const res = await fetch(`/api/admin/properties/${id}/approve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved }),
+      });
+      if (res.ok) {
+        setProperties((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, approved } : p))
+        );
+      }
+    } catch (err) {
+      console.error("Approval failed:", err);
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   if (properties.length === 0) {
     return (
       <Card className="p-12 text-center bg-card border-border/50">
@@ -169,6 +206,14 @@ export function AdminPropertyList({
                     Premium
                   </Badge>
                 )}
+                <Badge
+                  className={`text-xs shrink-0 ${approvalColors[property.approved] || approvalColors.pending}`}
+                >
+                  {property.approved === "pending" && <Clock className="w-3 h-3 mr-1" />}
+                  {property.approved === "approved" && <CheckCircle className="w-3 h-3 mr-1" />}
+                  {property.approved === "rejected" && <XCircle className="w-3 h-3 mr-1" />}
+                  {approvalLabels[property.approved] || "Pendente"}
+                </Badge>
               </div>
               <h3 className="font-semibold truncate">{property.title}</h3>
               <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 flex-wrap">
@@ -186,6 +231,38 @@ export function AdminPropertyList({
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
+              {property.approved !== "approved" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleApproval(property.id, "approved")}
+                  disabled={approvingId === property.id}
+                  className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                  title="Aprovar imóvel"
+                >
+                  {approvingId === property.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
+              {property.approved !== "rejected" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleApproval(property.id, "rejected")}
+                  disabled={approvingId === property.id}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  title="Rejeitar imóvel"
+                >
+                  {approvingId === property.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

@@ -1,6 +1,6 @@
 import { AdminPropertyList } from "@/components/admin-property-list";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Megaphone, Settings, MessageCircle } from "lucide-react";
+import { Plus, Users, Megaphone, Settings, MessageCircle, Shield } from "lucide-react";
 import Link from "next/link";
 import { getAll, getOne } from "@/lib/db";
 
@@ -25,7 +25,7 @@ interface Property {
 
 async function getProperties() {
   return await getAll(
-    "SELECT id, title, price, area, type, city, state, status, is_premium, created_at FROM properties ORDER BY created_at DESC"
+    "SELECT id, title, price, area, type, city, state, status, is_premium, approved, created_at FROM properties ORDER BY created_at DESC"
   ) as Property[];
 }
 
@@ -53,6 +53,12 @@ export default async function AdminPage() {
               <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
                 <Settings className="w-4 h-4 mr-2" />
                 Configurações
+              </Button>
+            </Link>
+            <Link href="/admin/usuarios">
+              <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                <Shield className="w-4 h-4 mr-2" />
+                Usuários
               </Button>
             </Link>
             <Link href="/admin/leads">

@@ -25,7 +25,7 @@ interface Property {
 
 async function getProperties() {
   const properties = await getAll(
-    "SELECT * FROM properties WHERE status = 'active' ORDER BY created_at DESC"
+    "SELECT * FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL) ORDER BY created_at DESC"
   ) as Property[];
 
   const propertiesWithImages = [];

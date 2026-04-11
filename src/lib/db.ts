@@ -206,6 +206,8 @@ export async function initDB() {
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;
 
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS media_status TEXT NOT NULL DEFAULT 'ready' CHECK(media_status IN ('ready', 'processing'));
+
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS approved TEXT NOT NULL DEFAULT 'pending' CHECK(approved IN ('pending', 'approved', 'rejected'));
   `);
 }
 

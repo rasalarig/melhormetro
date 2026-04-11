@@ -516,7 +516,7 @@ export async function openaiSearch(
   manualOverrides?: ManualSearchFilters
 ): Promise<SearchResult[]> {
   const properties = (await getAll(
-    "SELECT * FROM properties WHERE status = 'active'"
+    "SELECT * FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL)"
   )) as Property[];
 
   if (properties.length === 0) return [];
@@ -549,7 +549,7 @@ export async function filterSearch(
   keywordQuery?: string
 ): Promise<SearchResult[]> {
   const properties = (await getAll(
-    "SELECT * FROM properties WHERE status = 'active'"
+    "SELECT * FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL)"
   )) as Property[];
 
   if (properties.length === 0) return [];
@@ -612,7 +612,7 @@ export async function localSearch(
 ): Promise<SearchResult[]> {
   const properties =
     preloadedProperties ||
-    ((await getAll("SELECT * FROM properties WHERE status = 'active'")) as Property[]);
+    ((await getAll("SELECT * FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL)")) as Property[]);
 
   const queryNorm = normalize(queryText);
   const queryWords = queryNorm.split(/\s+/).filter((w) => w.length > 2);
