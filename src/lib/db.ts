@@ -208,6 +208,18 @@ export async function initDB() {
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS media_status TEXT NOT NULL DEFAULT 'ready' CHECK(media_status IN ('ready', 'processing'));
 
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS approved TEXT NOT NULL DEFAULT 'pending' CHECK(approved IN ('pending', 'approved', 'rejected'));
+
+    CREATE TABLE IF NOT EXISTS contact_violations (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      attempted_message TEXT NOT NULL,
+      violation_type TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS accepted_seller_terms BOOLEAN DEFAULT FALSE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS accepted_seller_terms_at TIMESTAMPTZ;
   `);
 }
 

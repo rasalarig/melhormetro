@@ -9,6 +9,7 @@ interface AuthUser {
   avatar_url: string | null;
   is_premium: boolean;
   is_admin: boolean;
+  accepted_seller_terms: boolean;
 }
 
 interface AuthContextType {

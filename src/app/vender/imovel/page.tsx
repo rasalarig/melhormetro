@@ -121,6 +121,8 @@ export default function CadastrarImovelPage() {
   const [uploadProgress, setUploadProgress] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<{ id: number } | null>(null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [acceptingTerms, setAcceptingTerms] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -273,6 +275,22 @@ export default function CadastrarImovelPage() {
     },
     [addFiles]
   );
+
+  const acceptTerms = async () => {
+    setAcceptingTerms(true);
+    try {
+      const res = await fetch("/api/auth/accept-terms", { method: "POST" });
+      if (res.ok) {
+        setShowTermsModal(false);
+        // Reload page to refresh user data
+        window.location.reload();
+      }
+    } catch {
+      setError("Erro ao aceitar termos. Tente novamente.");
+    } finally {
+      setAcceptingTerms(false);
+    }
+  };
 
   async function uploadFiles(): Promise<{ url: string; is_cover: boolean }[]> {
     const filesToUpload = mediaEntries.filter((e) => e.file);
@@ -447,6 +465,94 @@ export default function CadastrarImovelPage() {
                 >
                   Meus Imóveis
                 </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Terms gate - show modal if seller hasn't accepted terms
+  if (user && !user.accepted_seller_terms) {
+    return (
+      <div className="min-h-screen bg-background pb-24 md:pb-8">
+        <div className="container mx-auto px-4 pt-16 max-w-2xl">
+          <div className="rounded-xl border border-border/50 bg-card p-6 md:p-8 space-y-6">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mb-4">
+                <Home className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Termos do Vendedor</h1>
+              <p className="text-muted-foreground text-sm">
+                Para anunciar imóveis no MelhorMetro, você precisa aceitar nossos termos de uso.
+              </p>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto rounded-lg border border-border/30 bg-background/50 p-4 text-sm text-muted-foreground space-y-4 leading-relaxed">
+              <h3 className="font-semibold text-foreground">1. Comunicação exclusiva pela plataforma</h3>
+              <p>
+                Toda comunicação entre compradores e vendedores deve ocorrer exclusivamente através do chat do MelhorMetro.
+                É expressamente proibido compartilhar, solicitar ou sugerir qualquer forma de contato externo, incluindo
+                mas não limitado a: números de telefone, emails, perfis de redes sociais (Instagram, Facebook, LinkedIn),
+                WhatsApp, Telegram ou qualquer outro meio de comunicação fora da plataforma.
+              </p>
+
+              <h3 className="font-semibold text-foreground">2. Intermediação</h3>
+              <p>
+                O MelhorMetro oferece um serviço de intermediação para facilitar negociações, visitas e contratos.
+                Qualquer das partes pode solicitar a intermediação a qualquer momento através do botão
+                &quot;Chamar Intermediação&quot; disponível no chat. Um representante do MelhorMetro acompanhará
+                a negociação para garantir segurança e transparência para ambas as partes.
+              </p>
+
+              <h3 className="font-semibold text-foreground">3. Conteúdo dos anúncios</h3>
+              <p>
+                Todo imóvel cadastrado passará por uma análise de aprovação antes de ser veiculado na plataforma.
+                O vendedor se compromete a fornecer informações verídicas e imagens reais do imóvel.
+                É proibido o upload de conteúdo inapropriado, enganoso ou que viole direitos de terceiros.
+              </p>
+
+              <h3 className="font-semibold text-foreground">4. Penalidades por descumprimento</h3>
+              <p>
+                O descumprimento das regras acima poderá resultar nas seguintes medidas, aplicadas a critério
+                do MelhorMetro:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>1ª violação:</strong> Advertência formal por mensagem na plataforma.</li>
+                <li><strong>2ª violação:</strong> Suspensão temporária da conta por 7 dias.</li>
+                <li><strong>3ª violação:</strong> Suspensão temporária da conta por 30 dias.</li>
+                <li><strong>Reincidência:</strong> Exclusão permanente da conta e de todos os anúncios.</li>
+              </ul>
+              <p>
+                O MelhorMetro monitora automaticamente as mensagens para detectar tentativas de compartilhamento
+                de informações de contato. Todas as tentativas são registradas e analisadas pela equipe de moderação.
+              </p>
+
+              <h3 className="font-semibold text-foreground">5. Aceitação</h3>
+              <p>
+                Ao clicar em &quot;Aceitar e Continuar&quot; abaixo, você declara que leu, compreendeu e concorda
+                com todos os termos acima. Estes termos são válidos enquanto você mantiver uma conta ativa
+                no MelhorMetro e podem ser atualizados mediante aviso prévio.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={acceptTerms}
+                disabled={acceptingTerms}
+                className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium rounded-xl text-base flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {acceptingTerms ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  "Aceitar e Continuar"
+                )}
+              </button>
+              <Link href="/vender/meus-imoveis">
+                <button className="w-full h-10 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Voltar
+                </button>
               </Link>
             </div>
           </div>

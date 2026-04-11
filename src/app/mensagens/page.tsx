@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
-import { ArrowLeft, Send, MessageCircle, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Check, CheckCheck, Handshake, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface OtherUser {
@@ -30,6 +30,7 @@ interface Conversation {
   last_message: Message | null;
   unread_count: number;
   updated_at: string;
+  intermediation_status?: string;
 }
 
 function getInitial(name: string) {
@@ -68,6 +69,7 @@ function MensagensContent() {
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [requestingIntermediation, setRequestingIntermediation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -240,6 +242,28 @@ function MensagensContent() {
     setMobileShowChat(false);
   };
 
+  const requestIntermediation = async () => {
+    if (!activeConversation || requestingIntermediation) return;
+    setRequestingIntermediation(true);
+    try {
+      const res = await fetch(`/api/conversations/${activeConversation.id}/intermediation`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setActiveConversation((prev) =>
+          prev ? { ...prev, intermediation_status: "active" } : prev
+        );
+        // Refresh messages to show the system message
+        await fetchMessages(activeConversation.id);
+        await fetchConversations();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setRequestingIntermediation(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -380,7 +404,7 @@ function MensagensContent() {
                     {getInitial(activeConversation.other_user.name)}
                   </div>
                 )}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">
                     {activeConversation.other_user.name}
                   </p>
@@ -388,6 +412,30 @@ function MensagensContent() {
                     {activeConversation.property_title}
                   </p>
                 </div>
+                {activeConversation.intermediation_status === "active" ? (
+                  <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 py-1 shrink-0">
+                    <Handshake className="w-3.5 h-3.5" />
+                    Intermediação ativa
+                  </span>
+                ) : activeConversation.intermediation_status !== "closed" ? (
+                  <button
+                    onClick={requestIntermediation}
+                    disabled={requestingIntermediation}
+                    className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 rounded-full px-3 py-1 transition-colors shrink-0"
+                  >
+                    {requestingIntermediation ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Handshake className="w-3.5 h-3.5" />
+                    )}
+                    Chamar Intermediação
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/30 rounded-full px-3 py-1 shrink-0">
+                    <Handshake className="w-3.5 h-3.5" />
+                    Intermediação concluída
+                  </span>
+                )}
               </div>
 
               {/* Messages Area */}

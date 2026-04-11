@@ -49,6 +49,7 @@ export async function GET() {
       last_message: lastMessage || null,
       unread_count: unreadRow?.count || 0,
       updated_at: conv.updated_at,
+      intermediation_status: conv.intermediation_status,
     });
   }
 

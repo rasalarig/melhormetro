@@ -132,6 +132,16 @@ export async function POST(
   // Check for contact information
   const contactCheck = containsContactInfo(content.trim());
   if (contactCheck.blocked) {
+    // Log violation for admin review
+    try {
+      await query(
+        'INSERT INTO contact_violations (user_id, conversation_id, attempted_message, violation_type) VALUES ($1, $2, $3, $4)',
+        [user.id, conversationId, content.trim(), contactCheck.reason]
+      );
+    } catch (e) {
+      console.error('[Violations] Failed to log violation:', e);
+    }
+
     return NextResponse.json(
       { error: contactCheck.reason, blocked: true },
       { status: 422 }

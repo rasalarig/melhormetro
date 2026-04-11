@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         avatar_url: user.avatar_url,
+        accepted_seller_terms: user.accepted_seller_terms || false,
       },
     }, { status: 201 });
   } catch (error: unknown) {
