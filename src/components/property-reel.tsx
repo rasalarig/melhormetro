@@ -94,10 +94,10 @@ export function PropertyReel({
     if (Math.abs(diff) > threshold) {
       if (diff > 0) {
         // Swipe left - next
-        setCurrentImageIndex((prev) => Math.min(prev + 1, imageUrls.length - 1));
+        setCurrentImageIndex((prev) => prev === imageUrls.length - 1 ? 0 : prev + 1);
       } else {
         // Swipe right - previous
-        setCurrentImageIndex((prev) => Math.max(prev - 1, 0));
+        setCurrentImageIndex((prev) => prev === 0 ? imageUrls.length - 1 : prev - 1);
       }
     }
   }, [imageUrls.length]);

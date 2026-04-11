@@ -161,7 +161,7 @@ export function PropertyDetail({ property }: PropertyProps) {
                 <>
                   <button
                     onClick={() =>
-                      setCurrentImage(Math.max(0, currentImage - 1))
+                      setCurrentImage(currentImage === 0 ? property.images.length - 1 : currentImage - 1)
                     }
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
                   >
@@ -170,7 +170,7 @@ export function PropertyDetail({ property }: PropertyProps) {
                   <button
                     onClick={() =>
                       setCurrentImage(
-                        Math.min(property.images.length - 1, currentImage + 1)
+                        currentImage === property.images.length - 1 ? 0 : currentImage + 1
                       )
                     }
                     className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
