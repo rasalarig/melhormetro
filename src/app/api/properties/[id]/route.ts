@@ -103,6 +103,13 @@ export async function PUT(
       imageUrls,
       video_urls,
       media_status,
+      address_privacy,
+      approximate_radius_km,
+      allow_resale,
+      resale_commission_percent,
+      resale_terms,
+      facade_orientation,
+      condominium_id,
     } = body;
 
     await query(
@@ -122,8 +129,15 @@ export async function PUT(
         latitude = COALESCE($13, latitude),
         longitude = COALESCE($14, longitude),
         media_status = COALESCE($15, media_status),
+        address_privacy = COALESCE($16, address_privacy),
+        approximate_radius_km = COALESCE($17, approximate_radius_km),
+        allow_resale = COALESCE($18, allow_resale),
+        resale_commission_percent = COALESCE($19, resale_commission_percent),
+        resale_terms = COALESCE($20, resale_terms),
+        facade_orientation = COALESCE($21, facade_orientation),
+        condominium_id = CASE WHEN $22::integer IS NOT NULL THEN $22::integer ELSE condominium_id END,
         updated_at = NOW()
-      WHERE id = $16`,
+      WHERE id = $23`,
       [
         title || null,
         description || null,
@@ -140,6 +154,13 @@ export async function PUT(
         latitude !== undefined ? latitude : null,
         longitude !== undefined ? longitude : null,
         media_status || null,
+        address_privacy || null,
+        approximate_radius_km !== undefined ? approximate_radius_km : null,
+        allow_resale !== undefined ? allow_resale : null,
+        resale_commission_percent !== undefined ? resale_commission_percent : null,
+        resale_terms !== undefined ? resale_terms : null,
+        facade_orientation !== undefined ? (facade_orientation || null) : null,
+        condominium_id !== undefined ? condominium_id : null,
         params.id,
       ]
     );

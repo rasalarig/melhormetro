@@ -18,12 +18,15 @@ import {
   X,
   Play,
   Sparkles,
+  GripVertical,
 } from "lucide-react";
 import Link from "next/link";
 
 const PROPERTY_TYPES = [
   { value: "terreno", label: "Terreno" },
+  { value: "terreno_condominio", label: "Terreno em Condomínio" },
   { value: "casa", label: "Casa" },
+  { value: "casa_condominio", label: "Casa em Condomínio" },
   { value: "apartamento", label: "Apartamento" },
   { value: "comercial", label: "Comercial" },
   { value: "rural", label: "Rural" },
@@ -116,6 +119,25 @@ export default function CadastrarImovelPage() {
     { url: "", is_cover: true },
   ]);
   const [isDragOver, setIsDragOver] = useState(false);
+  // Drag-to-reorder state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  // Address privacy
+  const [addressPrivacy, setAddressPrivacy] = useState<"exact" | "approximate">("exact");
+  const [approximateRadiusKm, setApproximateRadiusKm] = useState(1.0);
+
+  // Facade orientation
+  const [facadeOrientation, setFacadeOrientation] = useState("");
+
+  // Condominium
+  const [condominiumId, setCondominiumId] = useState<number | null>(null);
+  const [condominiums, setCondominiums] = useState<Array<{ id: number; name: string; city: string | null }>>([]);
+
+  // Resale / recomercialização
+  const [allowResale, setAllowResale] = useState(false);
+  const [resaleCommissionPercent, setResaleCommissionPercent] = useState("");
+  const [resaleTerms, setResaleTerms] = useState("");
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
@@ -125,6 +147,11 @@ export default function CadastrarImovelPage() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [acceptingTerms, setAcceptingTerms] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
+
+  // AI prompt fill state
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiFilling, setAiFilling] = useState(false);
+  const [aiFillSuccess, setAiFillSuccess] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -144,7 +171,23 @@ export default function CadastrarImovelPage() {
   }, []);
 
   const showDetails =
-    propertyType === "casa" || propertyType === "apartamento";
+    propertyType === "casa" || propertyType === "apartamento" || propertyType === "casa_condominio";
+
+  const isCondoType = propertyType === "casa_condominio" || propertyType === "terreno_condominio";
+
+  useEffect(() => {
+    const isCondoNow = propertyType === "casa_condominio" || propertyType === "terreno_condominio";
+    if (isCondoNow && condominiums.length === 0) {
+      fetch("/api/condominiums")
+        .then((r) => r.json())
+        .then((data) => setCondominiums(data.condominiums || []))
+        .catch(console.error);
+    }
+    if (!isCondoNow) {
+      setCondominiumId(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyType]);
 
   function toggleCharacteristic(char: string) {
     setSelectedChars((prev) =>
@@ -278,6 +321,36 @@ export default function CadastrarImovelPage() {
     [addFiles]
   );
 
+  // --- Drag-to-reorder handlers for media grid ---
+  const handleItemDragStart = useCallback((e: React.DragEvent, index: number) => {
+    e.dataTransfer.effectAllowed = "move";
+    setDragIndex(index);
+  }, []);
+
+  const handleItemDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setOverIndex(index);
+  }, []);
+
+  const handleItemDrop = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragIndex(null);
+    setOverIndex(null);
+    if (dragIndex === null || dragIndex === index) return;
+    setMediaEntries((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+  }, [dragIndex]);
+
+  const handleItemDragEnd = useCallback(() => {
+    setDragIndex(null);
+    setOverIndex(null);
+  }, []);
+
   const generateWithAI = async () => {
     setAiGenerating(true);
     setError("");
@@ -316,6 +389,67 @@ export default function CadastrarImovelPage() {
       setError("Não foi possível gerar o texto com IA. Tente novamente.");
     } finally {
       setAiGenerating(false);
+    }
+  };
+
+  const fillWithAI = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiFilling(true);
+    setAiFillSuccess(false);
+    setError("");
+    try {
+      const res = await fetch("/api/ai/generate-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao preencher com IA");
+      }
+
+      const data = await res.json();
+
+      // Fill only non-null values returned by the AI
+      if (data.title) setTitle(data.title);
+      if (data.description) setDescription(data.description);
+      if (data.type) setPropertyType(data.type);
+      if (data.price != null) setPrice(String(data.price));
+      if (data.area != null) setArea(String(data.area));
+      if (data.city) setCity(data.city);
+      if (data.state) setState(data.state);
+      if (data.neighborhood) setNeighborhood(data.neighborhood);
+      if (data.address) setAddress(data.address);
+      if (data.bedrooms != null) setBedrooms(String(data.bedrooms));
+      if (data.bathrooms != null) setBathrooms(String(data.bathrooms));
+      if (data.garage_spots != null) setParking(String(data.garage_spots));
+      if (Array.isArray(data.characteristics) && data.characteristics.length > 0) {
+        const validChars = data.characteristics.filter((c: string) =>
+          ALL_CHARACTERISTICS.includes(c)
+        );
+        if (validChars.length > 0) {
+          setSelectedChars((prev) => {
+            const merged = [...new Set([...prev, ...validChars])];
+            return merged;
+          });
+        }
+      }
+      // Handle boolean toggles via characteristics
+      if (data.has_pool === true && !selectedChars.includes("piscina")) {
+        setSelectedChars((prev) => [...new Set([...prev, "piscina"])]);
+      }
+      if (data.is_gated_community === true && !selectedChars.includes("condomínio fechado")) {
+        setSelectedChars((prev) => [...new Set([...prev, "condomínio fechado"])]);
+      }
+      if (data.is_paved_street === true && !selectedChars.includes("asfalto")) {
+        setSelectedChars((prev) => [...new Set([...prev, "asfalto"])]);
+      }
+
+      setAiFillSuccess(true);
+    } catch {
+      setError("Não foi possível preencher com IA. Tente novamente.");
+    } finally {
+      setAiFilling(false);
     }
   };
 
@@ -447,6 +581,13 @@ export default function CadastrarImovelPage() {
           details: Object.keys(details).length > 0 ? details : null,
           imageUrls: allImageUrls,
           media_status: "ready",
+          address_privacy: addressPrivacy,
+          approximate_radius_km: addressPrivacy === "approximate" ? approximateRadiusKm : 1.0,
+          allow_resale: allowResale,
+          resale_commission_percent: allowResale && resaleCommissionPercent ? Number(resaleCommissionPercent) : null,
+          resale_terms: allowResale && resaleTerms.trim() ? resaleTerms.trim() : null,
+          facade_orientation: facadeOrientation || null,
+          condominium_id: isCondoType ? condominiumId : null,
         }),
       });
 
@@ -620,6 +761,44 @@ export default function CadastrarImovelPage() {
           </p>
         </div>
 
+        {/* Section: AI prompt fill */}
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 space-y-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <h2 className="text-base font-semibold text-foreground">
+              Preencher formulário com IA
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Descreva seu imóvel em linguagem natural e a IA preencherá os campos do formulário automaticamente.
+          </p>
+          <textarea
+            value={aiPrompt}
+            onChange={(e) => { setAiPrompt(e.target.value); setAiFillSuccess(false); }}
+            placeholder={`Ex: Casa de 3 quartos com piscina em condomínio fechado no bairro Jardins, São Paulo. 200m², 2 vagas de garagem, preço R$ 850.000`}
+            rows={5}
+            className="w-full rounded-lg border border-emerald-500/20 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors resize-none"
+          />
+          <button
+            type="button"
+            onClick={fillWithAI}
+            disabled={aiFilling || !aiPrompt.trim()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {aiFilling ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            {aiFilling ? "Preenchendo..." : "Preencher formulário com IA"}
+          </button>
+          {aiFillSuccess && (
+            <p className="text-sm text-emerald-400 font-medium">
+              Campos preenchidos com IA! Revise e ajuste antes de salvar.
+            </p>
+          )}
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section: Informações Básicas */}
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
@@ -688,6 +867,30 @@ export default function CadastrarImovelPage() {
                 ))}
               </select>
             </div>
+
+            {/* Condominium selector */}
+            {isCondoType && (
+              <div>
+                <label className={labelClass}>Condomínio</label>
+                <select
+                  value={condominiumId ?? ""}
+                  onChange={(e) => setCondominiumId(e.target.value ? Number(e.target.value) : null)}
+                  className={inputClass}
+                >
+                  <option value="">— Selecionar condomínio —</option>
+                  {condominiums.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}{c.city ? ` — ${c.city}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {condominiums.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Nenhum condomínio cadastrado ainda.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -772,6 +975,59 @@ export default function CadastrarImovelPage() {
                 placeholder="Ex: Centro"
                 className={inputClass}
               />
+            </div>
+
+            <div>
+              <label className={labelClass}>Exibição do endereço</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAddressPrivacy("exact")}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                    addressPrivacy === "exact"
+                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
+                      : "border-border/50 bg-background text-muted-foreground hover:border-emerald-500/50"
+                  }`}
+                >
+                  Endereço exato
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddressPrivacy("approximate")}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                    addressPrivacy === "approximate"
+                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
+                      : "border-border/50 bg-background text-muted-foreground hover:border-emerald-500/50"
+                  }`}
+                >
+                  Localização aproximada
+                </button>
+              </div>
+              {addressPrivacy === "approximate" && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    O mapa mostrará apenas uma área aproximada. O endereço exato não será exibido.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground whitespace-nowrap">
+                      Raio: {approximateRadiusKm.toFixed(1)} km
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="5"
+                      step="0.5"
+                      value={approximateRadiusKm}
+                      onChange={(e) => setApproximateRadiusKm(Number(e.target.value))}
+                      className="flex-1 accent-emerald-500"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0,5 km</span>
+                    <span>5 km</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -882,6 +1138,106 @@ export default function CadastrarImovelPage() {
             </div>
           </div>
 
+          {/* Section: Recomercialização */}
+          <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+            <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">
+              Recomercialização
+            </h2>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Permitir que autônomos comercializem este imóvel
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Agentes autônomos poderão ver e divulgar este imóvel mediante comissão
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAllowResale(!allowResale)}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  allowResale ? "bg-emerald-500" : "bg-border/60"
+                }`}
+                aria-checked={allowResale}
+                role="switch"
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    allowResale ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {allowResale && (
+              <div className="space-y-4 pt-2">
+                <div>
+                  <label className={labelClass}>
+                    Comissão oferecida ao autônomo (%) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={resaleCommissionPercent}
+                    onChange={(e) => setResaleCommissionPercent(e.target.value)}
+                    placeholder="Ex: 3.0"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Percentual do valor de venda que será pago ao autônomo como comissão.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Termos e condições (opcional)</label>
+                  <textarea
+                    value={resaleTerms}
+                    onChange={(e) => setResaleTerms(e.target.value)}
+                    placeholder="Ex: Comissão paga após assinatura do contrato. Exclusividade de 30 dias."
+                    rows={3}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section: Orientação Solar */}
+          <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+            <div>
+              <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">
+                Orientação Solar
+              </h2>
+              <p className="text-xs text-muted-foreground mt-2">
+                Indica para qual direção a fachada principal do imóvel está voltada. Ajuda compradores a entender a incidência de sol.
+              </p>
+            </div>
+            <div>
+              <label className={labelClass}>Orientação da fachada</label>
+              <select
+                value={facadeOrientation}
+                onChange={(e) => setFacadeOrientation(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Não informado</option>
+                <option value="norte">Norte</option>
+                <option value="nordeste">Nordeste</option>
+                <option value="leste">Leste</option>
+                <option value="sudeste">Sudeste</option>
+                <option value="sul">Sul</option>
+                <option value="sudoeste">Sudoeste</option>
+                <option value="oeste">Oeste</option>
+                <option value="noroeste">Noroeste</option>
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Opcional. No hemisfério sul, fachadas voltadas para o Norte recebem mais sol ao longo do ano.
+              </p>
+            </div>
+          </div>
+
           {/* Section: Fotos e Vídeos */}
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
             <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2 flex items-center gap-2">
@@ -893,7 +1249,13 @@ export default function CadastrarImovelPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setMediaTab("upload")}
+                onClick={() => {
+                  if (mediaTab === "upload") {
+                    fileInputRef.current?.click();
+                  } else {
+                    setMediaTab("upload");
+                  }
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   mediaTab === "upload"
                     ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/40"
@@ -967,7 +1329,18 @@ export default function CadastrarImovelPage() {
                     {mediaEntries.map((entry, index) => (
                       <div
                         key={index}
-                        className="relative group rounded-lg overflow-hidden border border-border/30 bg-background aspect-square"
+                        draggable
+                        onDragStart={(e) => handleItemDragStart(e, index)}
+                        onDragOver={(e) => handleItemDragOver(e, index)}
+                        onDrop={(e) => handleItemDrop(e, index)}
+                        onDragEnd={handleItemDragEnd}
+                        className={`relative group rounded-lg overflow-hidden border bg-background aspect-square cursor-grab active:cursor-grabbing transition-opacity ${
+                          dragIndex === index
+                            ? "opacity-40"
+                            : overIndex === index && dragIndex !== null
+                            ? "border-emerald-500 ring-2 ring-emerald-500/40"
+                            : "border-border/30"
+                        }`}
                       >
                         {entry.type === "image" && entry.preview ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -975,6 +1348,7 @@ export default function CadastrarImovelPage() {
                             src={entry.preview}
                             alt={entry.file?.name || `Media ${index + 1}`}
                             className="w-full h-full object-cover"
+                            draggable={false}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-background">
@@ -986,6 +1360,11 @@ export default function CadastrarImovelPage() {
                             </div>
                           </div>
                         )}
+
+                        {/* Order number badge */}
+                        <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white font-bold px-1.5 py-0.5 rounded">
+                          {index + 1}
+                        </span>
 
                         {/* Cover badge */}
                         {entry.is_cover && (
@@ -1000,6 +1379,11 @@ export default function CadastrarImovelPage() {
                             VIDEO
                           </span>
                         )}
+
+                        {/* Drag handle */}
+                        <div className="absolute top-1 right-1 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          <GripVertical className="w-3.5 h-3.5" />
+                        </div>
 
                         {/* Hover overlay with actions - always visible on mobile */}
                         <div className="absolute inset-0 bg-black/30 md:bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -1041,8 +1425,8 @@ export default function CadastrarImovelPage() {
                 {mediaEntries.length > 0 && (
                   <p className="text-xs text-muted-foreground">
                     {mediaEntries.length} arquivo(s) selecionado(s).{" "}
-                    <span className="hidden md:inline">Passe o mouse sobre uma imagem para definir como capa ou remover.</span>
-                    <span className="md:hidden">Toque nos botões sobre a imagem para definir capa ou remover.</span>
+                    <span className="hidden md:inline">Arraste para reordenar. Passe o mouse sobre uma imagem para definir como capa ou remover.</span>
+                    <span className="md:hidden">Arraste para reordenar. Toque nos botões sobre a imagem para definir capa ou remover.</span>
                   </p>
                 )}
               </div>

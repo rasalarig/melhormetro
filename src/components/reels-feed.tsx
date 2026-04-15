@@ -23,6 +23,11 @@ interface Property {
   state: string;
   characteristics: string[];
   images: PropertyImage[];
+  // Tour fields
+  tour_id?: number;
+  tour_title?: string;
+  tour_description?: string;
+  is_original?: boolean;
 }
 
 export function ReelsFeed() {
@@ -130,6 +135,8 @@ export function ReelsFeed() {
                   state={property.state}
                   characteristics={property.characteristics}
                   images={property.images}
+                  tourTitle={property.tour_title}
+                  tourId={property.tour_id}
                 />
               </div>
             ))}

@@ -16,6 +16,7 @@ interface Property {
   characteristics: string;
   details: string;
   status: string;
+  cover_image: string | null;
 }
 
 interface SearchResult {
@@ -75,6 +76,29 @@ IMPORTANT RULES:
 - Always return valid JSON. Never return text outside the JSON.
 - When query is just a type like "casa" or "terreno", only set the type filter. Leave everything else null/empty.
 
+LIFESTYLE & ASPIRATIONAL LANGUAGE — interpret these as keywords:
+- "vista para mata" / "vista para verde" / "natureza" / "acordar com vista" → keywords: ["mata","verde","natureza","vista"]
+- "perto de golfe" / "clube de golfe" / "golf" → keywords: ["golfe","golf"]
+- "cavalo" / "equestre" / "haras" / "pasto" → keywords: ["cavalo","equestre","haras","pasto","rural"], type: ["rural"] or ["casa"]
+- "campo" / "interior" / "sítio" / "chácara" → keywords: ["campo","sitio","chacara","interior"], type: ["rural"] or ["casa"]
+- "sossego" / "tranquilidade" / "silêncio" / "paz" → keywords: ["tranquilo","silencioso","sossego","rural","campo"]
+- "serra" / "montanha" / "altitude" → keywords: ["serra","montanha","altitude","vista"]
+- "praia" / "mar" / "litoral" / "beira-mar" → keywords: ["praia","mar","litoral","beira-mar","praia"]
+- "piscina" alone → must_have: ["piscina"]
+- "academia" / "fitness" → must_have: ["academia"]
+- "condomínio fechado" / "segurança" / "portaria" → must_have: ["condominio fechado"] or keywords: ["seguranca","portaria"]
+- "investimento" / "renda" / "aluguel" → keywords: ["investimento","renda","aluguel","compacto"]
+- "espaço para home office" / "escritório" → keywords: ["home office","escritorio","quarto extra"]
+- "gourmet" / "área gourmet" → must_have: ["area gourmet"] or keywords: ["gourmet"]
+- "churrasqueira" → must_have: ["churrasqueira"]
+- "varanda" / "sacada" → keywords: ["varanda","sacada"]
+
+GEOGRAPHIC LIFESTYLE CLUES — interpret distances/regions:
+- "perto de SP" / "próximo a São Paulo" / "a 1h de SP" / "a 2h de SP" / "região metropolitana" → these are interior/suburban areas; do NOT set a city, but add keywords: ["proximo sp","grande sp"] or a known nearby city if mentioned
+- "interior de SP" → keywords: ["interior","sp"], state: "SP"
+- "litoral de SP" / "baixada santista" → keywords: ["litoral","santos","guaruja","praia","sp"], state: "SP"
+- "sul de minas" / "serra da mantiqueira" → keywords: ["minas","mantiqueira","serra"], state: "MG"
+
 Return ONLY this JSON structure (no markdown, no explanation, no extra text):
 {
   "type": ["casa"] or ["apartamento"] or null,
@@ -116,6 +140,18 @@ Query: "terreno sem aclive"
 
 Query: "casa"
 {"type":["casa"],"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":null,"must_have":[],"must_not_have":[],"keywords":[],"exclude_keywords":[],"sort_by":"relevance"}
+
+Query: "quero acordar com vista para mata, ter golfe perto e ficar a 1h de SP"
+{"type":null,"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":"SP","must_have":[],"must_not_have":[],"keywords":["mata","verde","natureza","vista","golfe","golf","interior","sp"],"exclude_keywords":[],"sort_by":"relevance"}
+
+Query: "casa de campo com espaco para cavalos perto de SP"
+{"type":["casa","rural"],"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":"SP","must_have":[],"must_not_have":[],"keywords":["campo","cavalo","equestre","haras","pasto","interior","sp"],"exclude_keywords":[],"sort_by":"relevance"}
+
+Query: "apartamento compacto para investimento perto do metro em SP"
+{"type":["apartamento"],"min_price":null,"max_price":null,"min_area":null,"max_area":60,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":"São Paulo","neighborhood":null,"state":"SP","must_have":[],"must_not_have":[],"keywords":["metro","investimento","compacto","renda","aluguel"],"exclude_keywords":[],"sort_by":"relevance"}
+
+Query: "terreno em condominio fechado no interior de SP"
+{"type":["terreno"],"min_price":null,"max_price":null,"min_area":null,"max_area":null,"min_bedrooms":null,"min_bathrooms":null,"min_parking":null,"city":null,"neighborhood":null,"state":"SP","must_have":["condominio fechado"],"must_not_have":[],"keywords":["interior","sp","condominio"],"exclude_keywords":[],"sort_by":"relevance"}
 
 CRITICAL: When the user says "sem X" (without X), you MUST add X and all its variations (with/without accents, singular/plural) to BOTH must_not_have AND exclude_keywords. This ensures properties containing X in ANY field are excluded. Never put exclusion terms in keywords or must_have.`;
 
@@ -511,13 +547,27 @@ function manualToSearchFilters(manual: ManualSearchFilters): SearchFilters {
 
 // ─── Main Search: Two-Step AI Search ─────────────────────────────────────────
 
+const PROPERTIES_WITH_COVER_QUERY = `
+  SELECT p.*,
+    COALESCE(
+      (SELECT tm.media_url FROM tour_media tm
+       JOIN property_tours pt ON tm.tour_id = pt.id
+       WHERE pt.property_id = p.id AND pt.is_original = TRUE AND pt.status = 'active'
+         AND tm.media_type = 'image'
+       ORDER BY tm.display_order ASC LIMIT 1),
+      (SELECT pi.filename FROM property_images pi
+       WHERE pi.property_id = p.id
+       ORDER BY pi.is_cover DESC, pi.id ASC LIMIT 1)
+    ) AS cover_image
+  FROM properties p
+  WHERE p.status = 'active' AND (p.approved = 'approved' OR p.approved IS NULL)
+`;
+
 export async function openaiSearch(
   queryText: string,
   manualOverrides?: ManualSearchFilters
 ): Promise<SearchResult[]> {
-  const properties = (await getAll(
-    "SELECT * FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL)"
-  )) as Property[];
+  const properties = (await getAll(PROPERTIES_WITH_COVER_QUERY)) as Property[];
 
   if (properties.length === 0) return [];
 
@@ -548,9 +598,7 @@ export async function filterSearch(
   manual: ManualSearchFilters,
   keywordQuery?: string
 ): Promise<SearchResult[]> {
-  const properties = (await getAll(
-    "SELECT * FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL)"
-  )) as Property[];
+  const properties = (await getAll(PROPERTIES_WITH_COVER_QUERY)) as Property[];
 
   if (properties.length === 0) return [];
 
@@ -612,7 +660,7 @@ export async function localSearch(
 ): Promise<SearchResult[]> {
   const properties =
     preloadedProperties ||
-    ((await getAll("SELECT * FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL)")) as Property[]);
+    ((await getAll(PROPERTIES_WITH_COVER_QUERY)) as Property[]);
 
   const queryNorm = normalize(queryText);
   const queryWords = queryNorm.split(/\s+/).filter((w) => w.length > 2);

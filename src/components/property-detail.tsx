@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   MapPin,
-  Maximize,
   ArrowLeft,
   Phone,
   MessageCircle,
@@ -16,9 +15,10 @@ import {
   Droplets,
   Calendar,
   Tag,
-  ChevronLeft,
   ChevronRight,
   Share2,
+  Handshake,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -26,8 +26,14 @@ import { useState } from "react";
 import { InterestModal } from "./interest-modal";
 import { LikeButton } from "./like-button";
 import { ReimaginePanelTrigger, ReimaginePanelDialog } from "./reimagine-panel";
-import { isVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
-
+import { isVideoUrl, isExternalVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
+import { useAuth } from "@/components/auth-provider";
+import { PropertyChat } from "@/components/property-chat";
+import { SolarCompass } from "@/components/solar-compass";
+import { ValuationScore } from "@/components/valuation-score";
+import { calculateValuationScore } from "@/lib/valuation-score";
+import { PropertyMediaGallery } from "@/components/property-media-gallery";
+import type { MediaItem } from "@/components/property-media-gallery";
 const PropertyMap = dynamic(() => import("./property-map"), { ssr: false });
 
 interface PropertyImage {
@@ -56,20 +62,95 @@ interface PropertyProps {
     updated_at: string;
     latitude: number | null;
     longitude: number | null;
+    address_privacy?: "exact" | "approximate";
+    approximate_radius_km?: number | null;
+    allow_resale?: boolean;
+    resale_commission_percent?: number | null;
+    resale_terms?: string | null;
+    seller_user_id?: number | null;
+    facade_orientation?: string | null;
+    condominium_id?: number | null;
+    condominium_name?: string | null;
+    condominium_slug?: string | null;
     images: PropertyImage[];
+    /** Combined media list from tour_media (preferred) or property_images (fallback) */
+    mediaItems?: MediaItem[];
   };
 }
 
 export function PropertyDetail({ property }: PropertyProps) {
+  const { user } = useAuth();
   const characteristics: string[] = JSON.parse(
     property.characteristics || "[]"
   );
   const details: Record<string, unknown> = JSON.parse(
     property.details || "{}"
   );
-  const [currentImage, setCurrentImage] = useState(0);
   const [showInterest, setShowInterest] = useState(false);
   const [reimagineOpen, setReimagineOpen] = useState(false);
+  const [reimagineUrl, setReimagineUrl] = useState<string>("");
+  const [resaleContactLoading, setResaleContactLoading] = useState(false);
+  const [resaleContactDone, setResaleContactDone] = useState(false);
+
+
+  const isAutonomo = user?.profiles?.some((p) => p.profile_type === "autonomo") ?? false;
+
+  // Build the media items list for the gallery.
+  // Priority: property.mediaItems (from tour_media or pre-built) → property.images fallback.
+  const galleryItems: MediaItem[] = property.mediaItems && property.mediaItems.length > 0
+    ? property.mediaItems
+    : property.images.map((img) => ({
+        url: img.filename,
+        type: "image" as const,
+        alt: img.original_name,
+      }));
+
+  // Determine the first plain image URL for the Reimagine panel.
+  const firstImageUrl: string = (() => {
+    for (const item of galleryItems) {
+      const url = resolveMediaUrl(item.url);
+      if (!isVideoUrl(url) && !isExternalVideoUrl(url)) return url;
+    }
+    return "";
+  })();
+
+  const canReimagine =
+    firstImageUrl !== "" &&
+    property.type !== "terreno" &&
+    property.type !== "terreno_condominio";
+
+  const handleImageClick = (url: string) => {
+    if (!canReimagine) return;
+    const resolved = resolveMediaUrl(url);
+    if (!isVideoUrl(resolved) && !isExternalVideoUrl(resolved)) {
+      setReimagineUrl(resolved);
+      setReimagineOpen(true);
+    }
+  };
+
+  const handleResaleContact = async () => {
+    if (!user || !property.seller_user_id) return;
+    setResaleContactLoading(true);
+    try {
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          property_id: property.id,
+          other_user_id: property.seller_user_id,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setResaleContactDone(true);
+        window.location.href = `/mensagens?conversation=${data.conversation?.id ?? ""}`;
+      }
+    } catch {
+      // ignore
+    } finally {
+      setResaleContactLoading(false);
+    }
+  };
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -120,102 +201,41 @@ export function PropertyDetail({ property }: PropertyProps) {
           Voltar para imóveis
         </Link>
 
-        {/* Image Gallery */}
-        <div className="relative rounded-2xl overflow-hidden mb-8 bg-gradient-to-br from-emerald-900/30 to-teal-900/30 aspect-video">
-          {property.images.length > 0 ? (
-            <>
-              {(() => {
-                const currentFilename = property.images[currentImage]?.filename || '';
-                const currentUrl = resolveMediaUrl(currentFilename);
-                const currentIsVideo = isVideoUrl(currentUrl);
-                return currentIsVideo ? (
-                  <video
-                    key={currentUrl}
-                    src={currentUrl}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    controls
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                  />
-                ) : (
-                  <div className="absolute inset-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={currentUrl}
-                      alt={property.images[currentImage]?.original_name || property.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    {property.type !== "terreno" && property.type !== "terreno_condominio" && (
-                      <ReimaginePanelTrigger
-                        variant="detail"
-                        onClick={() => setReimagineOpen(true)}
-                      />
-                    )}
-                  </div>
-                );
-              })()}
-              {property.images.length > 1 && (
-                <>
-                  <button
-                    onClick={() =>
-                      setCurrentImage(currentImage === 0 ? property.images.length - 1 : currentImage - 1)
-                    }
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentImage(
-                        currentImage === property.images.length - 1 ? 0 : currentImage + 1
-                      )
-                    }
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {property.images.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCurrentImage(i)}
-                        className={`w-2 h-2 rounded-full transition-colors ${
-                          i === currentImage
-                            ? "bg-emerald-400"
-                            : "bg-white/40"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <Maximize className="w-16 h-16 mx-auto mb-3 opacity-20" />
-                <p className="text-sm opacity-40">Imagens em breve</p>
-              </div>
-            </div>
-          )}
+        {/* Media Gallery (hero) */}
+        <div className="relative mb-4">
+          <PropertyMediaGallery
+            items={galleryItems}
+            propertyTitle={property.title}
+            onImageClick={canReimagine ? handleImageClick : undefined}
+          />
 
-          {/* Type badge */}
-          <div className="absolute top-4 left-4">
+          {/* Property type badge — overlaid on top-left of gallery */}
+          <div className="absolute top-4 left-4 z-10 pointer-events-none">
             <Badge className="bg-emerald-500/90 text-white border-0 px-3 py-1">
               {typeLabels[property.type] || property.type}
             </Badge>
           </div>
 
-          {/* Like & Share buttons */}
-          <div className="absolute top-4 right-4 flex items-center gap-2">
+          {/* Like & Share — overlaid on top-right of gallery */}
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
             <LikeButton propertyId={property.id} size="md" showCount />
             <button className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors">
               <Share2 className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Reimagine trigger — bottom-right of gallery, above thumbnails */}
+          {canReimagine && (
+            <div className="absolute bottom-14 right-4 z-10">
+              <ReimaginePanelTrigger
+                variant="detail"
+                onClick={() => {
+                  setReimagineUrl(firstImageUrl);
+                  setReimagineOpen(true);
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -228,13 +248,26 @@ export function PropertyDetail({ property }: PropertyProps) {
               </h1>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="w-4 h-4 text-emerald-400" />
-                <span>{property.address}</span>
-                {property.neighborhood && (
-                  <span>- {property.neighborhood}</span>
+                {property.address_privacy === "approximate" ? (
+                  <>
+                    {property.neighborhood && (
+                      <span>{property.neighborhood}</span>
+                    )}
+                    <span>
+                      {property.neighborhood ? "- " : ""}{property.city}, {property.state}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>{property.address}</span>
+                    {property.neighborhood && (
+                      <span>- {property.neighborhood}</span>
+                    )}
+                    <span>
+                      - {property.city}, {property.state}
+                    </span>
+                  </>
                 )}
-                <span>
-                  - {property.city}, {property.state}
-                </span>
               </div>
             </div>
 
@@ -344,7 +377,46 @@ export function PropertyDetail({ property }: PropertyProps) {
               </div>
             </div>
 
-            {/* Location placeholder */}
+            {/* Resale section — visible to autônomos only */}
+            {property.allow_resale && isAutonomo && (
+              <>
+                <Separator className="bg-border/50" />
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Handshake className="w-5 h-5 text-emerald-400" />
+                    <h2 className="text-base font-semibold text-foreground">
+                      Disponível para recomercialização
+                    </h2>
+                  </div>
+                  {property.resale_commission_percent != null && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Comissão oferecida:</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-semibold">
+                        {property.resale_commission_percent}%
+                      </span>
+                    </div>
+                  )}
+                  {property.resale_terms && (
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium mb-1">Termos e condições:</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {property.resale_terms}
+                      </p>
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleResaleContact}
+                    disabled={resaleContactLoading || resaleContactDone}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white mt-2"
+                  >
+                    <Handshake className="w-4 h-4 mr-2" />
+                    {resaleContactDone ? "Mensagem enviada!" : resaleContactLoading ? "Aguarde..." : "Quero comercializar este imóvel"}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Location */}
             <div>
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-emerald-400" />
@@ -354,8 +426,35 @@ export function PropertyDetail({ property }: PropertyProps) {
                 latitude={property.latitude}
                 longitude={property.longitude}
                 title={property.title}
-                address={`${property.address}, ${property.city} - ${property.state}`}
+                address={
+                  property.address_privacy === "approximate"
+                    ? `${property.neighborhood ? property.neighborhood + ", " : ""}${property.city} - ${property.state}`
+                    : `${property.address}, ${property.city} - ${property.state}`
+                }
+                address_privacy={property.address_privacy}
+                approximate_radius_km={property.approximate_radius_km}
               />
+            </div>
+
+            {/* Solar orientation section */}
+            {property.latitude != null &&
+              property.longitude != null &&
+              property.facade_orientation && (
+                <>
+                  <Separator className="bg-border/50" />
+                  <SolarCompass
+                    latitude={property.latitude}
+                    longitude={property.longitude}
+                    facadeOrientation={property.facade_orientation}
+                  />
+                </>
+              )}
+
+            {/* Valuation Score */}
+            <Separator className="bg-border/50" />
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Potencial de Valorização</h3>
+              <ValuationScore result={calculateValuationScore(property)} />
             </div>
           </div>
 
@@ -404,10 +503,36 @@ export function PropertyDetail({ property }: PropertyProps) {
                   Publicado em {formatDate(property.created_at)}
                 </div>
               </Card>
+
+              {/* Condominium link */}
+              {property.condominium_id && property.condominium_slug && (
+                <Link href={`/condominios/${property.condominium_slug}`}>
+                  <Card className="p-4 bg-card border-emerald-500/20 hover:border-emerald-500/40 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <Building2 className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground">Este imóvel está no</p>
+                        <p className="text-sm font-semibold text-emerald-400 truncate">
+                          {property.condominium_name || "Condomínio"}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </div>
+                  </Card>
+                </Link>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      <PropertyChat
+        propertyId={property.id}
+        propertyTitle={property.title}
+        propertyType={property.type}
+      />
 
       <InterestModal
         propertyId={property.id}
@@ -416,18 +541,13 @@ export function PropertyDetail({ property }: PropertyProps) {
         onClose={() => setShowInterest(false)}
       />
 
-      {property.images.length > 0 && property.type !== "terreno" && property.type !== "terreno_condominio" && (() => {
-        const currentFilename = property.images[currentImage]?.filename || '';
-        const currentUrl = resolveMediaUrl(currentFilename);
-        const currentIsVideo = isVideoUrl(currentUrl);
-        return !currentIsVideo ? (
-          <ReimaginePanelDialog
-            imageUrl={currentUrl}
-            isOpen={reimagineOpen}
-            onClose={() => setReimagineOpen(false)}
-          />
-        ) : null;
-      })()}
+      {canReimagine && reimagineUrl && (
+        <ReimaginePanelDialog
+          imageUrl={reimagineUrl}
+          isOpen={reimagineOpen}
+          onClose={() => setReimagineOpen(false)}
+        />
+      )}
     </div>
   );
 }

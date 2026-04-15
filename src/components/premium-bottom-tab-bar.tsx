@@ -2,20 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, Home, Crown, User } from "lucide-react";
+import { Film, Home, Crown, User, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 
 const publicTabs = [
+  { href: "/", icon: ArrowLeft, label: "Site" },
   { href: "/premium", icon: Crown, label: "Premium" },
   { href: "/premium/imoveis", icon: Home, label: "Imóveis" },
   { href: "/premium/login", icon: User, label: "Entrar" },
 ];
 
 const authedTabs = [
+  { href: "/", icon: ArrowLeft, label: "Site" },
   { href: "/premium", icon: Crown, label: "Premium" },
   { href: "/premium/reels", icon: Film, label: "Reels" },
   { href: "/premium/imoveis", icon: Home, label: "Imóveis" },
-  { href: "/premium/login", icon: User, label: "Perfil" },
 ];
 
 export function PremiumBottomTabBar() {
@@ -29,7 +30,7 @@ export function PremiumBottomTabBar() {
       <div className="flex items-center justify-around h-16 px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = pathname === tab.href || (tab.href !== "/premium" && pathname.startsWith(tab.href));
+          const isActive = tab.href !== "/" && (pathname === tab.href || (tab.href !== "/premium" && pathname.startsWith(tab.href)));
           return (
             <Link
               key={tab.href}

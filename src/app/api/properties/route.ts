@@ -4,10 +4,18 @@ import { checkAlertsForProperty } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const allowResaleFilter = searchParams.get('allow_resale');
+
+    const whereClause = allowResaleFilter === 'true'
+      ? `WHERE p.status = 'active' AND (p.approved = 'approved' OR p.approved IS NULL) AND p.allow_resale = TRUE`
+      : `WHERE p.status = 'active' AND (p.approved = 'approved' OR p.approved IS NULL)`;
+
     const properties = await getAll(
       `SELECT p.*,
+        s.user_id as seller_user_id,
         COALESCE((SELECT json_agg(json_build_object(
           'id', pi.id,
           'filename', pi.filename,
@@ -15,7 +23,8 @@ export async function GET() {
           'is_cover', pi.is_cover
         )) FROM property_images pi WHERE pi.property_id = p.id), '[]'::json) as images
       FROM properties p
-      WHERE p.status = 'active' AND (p.approved = 'approved' OR p.approved IS NULL)
+      LEFT JOIN sellers s ON p.seller_id = s.id
+      ${whereClause}
       ORDER BY p.created_at DESC`
     );
 

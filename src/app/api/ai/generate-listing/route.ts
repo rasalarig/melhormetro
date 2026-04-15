@@ -67,6 +67,50 @@ Responda EXATAMENTE neste formato JSON:
 {"title": "o título aqui", "description": "a descrição aqui"}`;
 }
 
+function buildPromptFromFreeText(userPrompt: string) {
+  const validTypes = Object.keys(typeLabels).join(', ');
+
+  return `Você é um corretor de imóveis experiente no Brasil. O usuário descreveu um imóvel em linguagem natural. Analise o texto e extraia todas as informações possíveis para preencher um formulário de anúncio imobiliário.
+
+TEXTO DO USUÁRIO:
+"${userPrompt}"
+
+TIPOS DE IMÓVEL VÁLIDOS: ${validTypes}
+
+INSTRUÇÕES:
+1. Extraia todas as informações mencionadas no texto
+2. Gere um título atraente (máximo 80 caracteres) e uma descrição persuasiva (3-5 parágrafos) em português
+3. Para campos não mencionados, use null
+4. Para "type", escolha o tipo mais adequado dentre os válidos acima, ou null se não for possível determinar
+5. Para "price", retorne apenas o número sem formatação (ex: 850000 para R$ 850.000)
+6. Para "area", retorne apenas o número em m² (ex: 200 para 200m²)
+7. Para "bedrooms", "bathrooms", "garage_spots", retorne apenas o número inteiro
+8. Para "state", use a sigla de 2 letras (ex: "SP", "RJ")
+9. Para "characteristics", inclua amenidades e características relevantes mencionadas como array de strings em português
+10. Para "has_pool", "is_gated_community", "is_paved_street", retorne true/false/null
+11. Não invente informações que não foram mencionadas no texto
+
+Responda EXATAMENTE neste formato JSON (sem texto adicional):
+{
+  "title": "string",
+  "description": "string",
+  "type": "string ou null",
+  "price": "número ou null",
+  "area": "número ou null",
+  "bedrooms": "número ou null",
+  "bathrooms": "número ou null",
+  "garage_spots": "número ou null",
+  "city": "string ou null",
+  "state": "string ou null",
+  "neighborhood": "string ou null",
+  "address": "string ou null",
+  "has_pool": "boolean ou null",
+  "is_gated_community": "boolean ou null",
+  "is_paved_street": "boolean ou null",
+  "characteristics": []
+}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
@@ -74,7 +118,9 @@ export async function POST(request: NextRequest) {
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    const prompt = buildPrompt(data);
+    // If a free-text prompt is provided, use the extraction mode
+    const isPromptMode = typeof data.prompt === 'string' && data.prompt.trim().length > 0;
+    const prompt = isPromptMode ? buildPromptFromFreeText(data.prompt.trim()) : buildPrompt(data);
 
     // Try OpenAI first
     if (openaiKey) {

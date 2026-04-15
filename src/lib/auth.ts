@@ -1,10 +1,18 @@
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
-import { query, getOne } from './db';
+import { query, getOne, getAll } from './db';
 import bcrypt from 'bcryptjs';
 
 const COOKIE_NAME = 'session_id';
 const SESSION_DURATION_DAYS = 7;
+
+export interface UserProfile {
+  profile_type: string;
+  creci?: string | null;
+  trade_name?: string | null;
+  cnpj?: string | null;
+  area_of_operation?: string | null;
+}
 
 export interface User {
   id: number;
@@ -17,6 +25,7 @@ export interface User {
   is_admin: boolean;
   accepted_seller_terms: boolean;
   created_at: string;
+  profiles: UserProfile[];
 }
 
 export function generateSessionId(): string {
@@ -59,7 +68,16 @@ export async function getCurrentUser(): Promise<User | null> {
     [sessionId]
   );
 
-  return row as User | null;
+  if (!row) return null;
+
+  const profiles = await getAll(
+    `SELECT profile_type, creci, trade_name, cnpj, area_of_operation
+     FROM user_profiles
+     WHERE user_id = $1 AND is_active = TRUE`,
+    [row.id]
+  );
+
+  return { ...(row as User), profiles: profiles as UserProfile[] };
 }
 
 export async function logout() {
@@ -190,4 +208,13 @@ export async function ensureSellerExists(userId: number, name: string, email: st
       [userId, name, '', email, '']
     );
   }
+}
+
+export async function ensureCompradorProfile(userId: number): Promise<void> {
+  await query(
+    `INSERT INTO user_profiles (user_id, profile_type)
+     VALUES ($1, 'comprador')
+     ON CONFLICT (user_id, profile_type) DO NOTHING`,
+    [userId]
+  );
 }

@@ -43,6 +43,13 @@ export async function POST(request: NextRequest) {
       imageUrls,
       video_urls,
       media_status,
+      address_privacy = 'exact',
+      approximate_radius_km = 1.0,
+      allow_resale = false,
+      resale_commission_percent,
+      resale_terms,
+      facade_orientation,
+      condominium_id,
     } = body;
 
     if (!title || !description || !price || !area || !type || !address || !city) {
@@ -54,8 +61,8 @@ export async function POST(request: NextRequest) {
 
     // Auto-set seller_id from authenticated user
     const property = await getOne(
-      `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, seller_id, media_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, seller_id, media_status, address_privacy, approximate_radius_km, allow_resale, resale_commission_percent, resale_terms, facade_orientation, condominium_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
        RETURNING *`,
       [
         title,
@@ -71,6 +78,13 @@ export async function POST(request: NextRequest) {
         details ? JSON.stringify(details) : null,
         seller.id,
         media_status || 'ready',
+        address_privacy || 'exact',
+        approximate_radius_km || 1.0,
+        allow_resale || false,
+        resale_commission_percent != null ? resale_commission_percent : null,
+        resale_terms || null,
+        facade_orientation || null,
+        condominium_id != null ? condominium_id : null,
       ]
     );
 
@@ -110,6 +124,48 @@ export async function POST(request: NextRequest) {
           );
         }
       }
+    }
+
+    // Create the original tour for this new property
+    try {
+      const tour = await getOne(
+        `INSERT INTO property_tours (property_id, title, status, moderation_status, is_original, created_by)
+         VALUES ($1, $2, 'active', 'approved', TRUE, $3)
+         RETURNING *`,
+        [property.id, title, user.id]
+      );
+
+      if (tour) {
+        // Migrate images into tour_media
+        const allMedia = [
+          ...(imageUrls || []).map((img: { url: string; is_cover?: boolean }, idx: number) => ({
+            url: img.url?.trim(),
+            type: 'image' as const,
+            order: idx,
+          })),
+          ...(video_urls || []).map((url: string, idx: number) => {
+            const trimmed = url?.trim() || '';
+            let mtype: string = 'video';
+            if (/youtube\.com|youtu\.be/i.test(trimmed)) mtype = 'youtube';
+            else if (/tiktok\.com/i.test(trimmed)) mtype = 'tiktok';
+            else if (/instagram\.com/i.test(trimmed)) mtype = 'instagram';
+            else if (/vimeo\.com/i.test(trimmed)) mtype = 'vimeo';
+            return { url: trimmed, type: mtype, order: (imageUrls?.length || 0) + idx };
+          }),
+        ];
+
+        for (const m of allMedia) {
+          if (m.url) {
+            await query(
+              `INSERT INTO tour_media (tour_id, media_url, media_type, display_order)
+               VALUES ($1, $2, $3, $4)`,
+              [tour.id, m.url, m.type, m.order]
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error creating original tour:', err);
     }
 
     // Check alerts for the new property

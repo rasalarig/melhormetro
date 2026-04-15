@@ -20,6 +20,7 @@ export async function GET() {
         is_premium: user.is_premium || false,
         is_admin: user.is_admin || false,
         accepted_seller_terms: user.accepted_seller_terms || false,
+        profiles: user.profiles || [],
       },
     });
   } catch (error) {

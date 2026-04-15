@@ -41,8 +41,11 @@ export async function GET(
       [alertId]
     );
 
-    // Mark all matches as seen
-    await query("UPDATE alert_matches SET seen = 1 WHERE alert_id = $1", [alertId]);
+    // Mark all matches as read
+    await query(
+      "UPDATE alert_matches SET read_at = NOW() WHERE alert_id = $1 AND read_at IS NULL",
+      [alertId]
+    );
 
     return NextResponse.json({
       alert,
@@ -91,19 +94,79 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { is_active } = body;
+    const {
+      is_active,
+      profile_name,
+      prompt,
+      property_type,
+      max_price,
+      min_area,
+      city,
+      state,
+      min_bedrooms,
+      must_have_characteristics,
+    } = body;
 
-    if (typeof is_active !== "boolean") {
+    // Build update query dynamically
+    const setClauses: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (is_active !== undefined) {
+      setClauses.push(`is_active = $${paramIndex++}`);
+      values.push(is_active ? 1 : 0);
+    }
+    if (profile_name !== undefined) {
+      setClauses.push(`profile_name = $${paramIndex++}`);
+      values.push(profile_name);
+    }
+    if (prompt !== undefined) {
+      setClauses.push(`prompt = $${paramIndex++}`);
+      values.push(prompt);
+    }
+    if (property_type !== undefined) {
+      setClauses.push(`property_type = $${paramIndex++}`);
+      values.push(property_type);
+    }
+    if (max_price !== undefined) {
+      setClauses.push(`max_price = $${paramIndex++}`);
+      values.push(max_price != null ? Number(max_price) : null);
+    }
+    if (min_area !== undefined) {
+      setClauses.push(`min_area = $${paramIndex++}`);
+      values.push(min_area != null ? Number(min_area) : null);
+    }
+    if (city !== undefined) {
+      setClauses.push(`city = $${paramIndex++}`);
+      values.push(city);
+    }
+    if (state !== undefined) {
+      setClauses.push(`state = $${paramIndex++}`);
+      values.push(state);
+    }
+    if (min_bedrooms !== undefined) {
+      setClauses.push(`min_bedrooms = $${paramIndex++}`);
+      values.push(min_bedrooms != null ? Number(min_bedrooms) : null);
+    }
+    if (must_have_characteristics !== undefined) {
+      setClauses.push(`must_have_characteristics = $${paramIndex++}`);
+      values.push(
+        Array.isArray(must_have_characteristics) ? must_have_characteristics : null
+      );
+    }
+
+    if (setClauses.length === 0) {
       return NextResponse.json(
-        { error: "is_active must be a boolean" },
+        { error: "No fields to update" },
         { status: 400 }
       );
     }
 
-    await query("UPDATE search_alerts SET is_active = $1 WHERE id = $2", [
-      is_active ? 1 : 0,
-      alertId,
-    ]);
+    values.push(alertId);
+    await query(
+      `UPDATE search_alerts SET ${setClauses.join(", ")} WHERE id = $${paramIndex}`,
+      values
+    );
 
     const updated = await getOne(
       "SELECT * FROM search_alerts WHERE id = $1",

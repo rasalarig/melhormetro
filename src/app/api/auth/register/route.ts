@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerUser, createSession, setSessionCookie } from '@/lib/auth';
+import { registerUser, createSession, setSessionCookie, ensureCompradorProfile } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     const trimmedName = name.trim();
 
     const user = await registerUser(trimmedName, trimmedEmail, password);
+    await ensureCompradorProfile(user.id);
     const sessionId = await createSession(user.id);
     setSessionCookie(sessionId);
 
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         avatar_url: user.avatar_url,
         accepted_seller_terms: user.accepted_seller_terms || false,
+        profiles: [{ profile_type: 'comprador' }],
       },
     }, { status: 201 });
   } catch (error: unknown) {

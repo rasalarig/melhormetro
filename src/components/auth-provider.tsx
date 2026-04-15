@@ -2,6 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
+export interface UserProfile {
+  profile_type: string;
+  creci?: string | null;
+  trade_name?: string | null;
+  cnpj?: string | null;
+  area_of_operation?: string | null;
+}
+
 interface AuthUser {
   id: number;
   name: string;
@@ -10,6 +18,7 @@ interface AuthUser {
   is_premium: boolean;
   is_admin: boolean;
   accepted_seller_terms: boolean;
+  profiles: UserProfile[];
 }
 
 interface AuthContextType {

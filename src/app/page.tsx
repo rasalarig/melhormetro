@@ -1,7 +1,14 @@
-import { ReelsFeed } from "@/components/reels-feed";
+import { HomepageHero, HomepageCategories, HomepageHighlights, HomepageFeaturedProperties } from "@/components/homepage-client";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
-  return <ReelsFeed />;
+  return (
+    <>
+      <HomepageHero />
+      <HomepageCategories />
+      <HomepageHighlights />
+      <HomepageFeaturedProperties />
+    </>
+  );
 }

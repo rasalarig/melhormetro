@@ -20,6 +20,8 @@ interface Property {
   characteristics: string;
   created_at: string;
   coverImage?: string;
+  allow_resale?: boolean;
+  resale_commission_percent?: number | null;
 }
 
 type SortOption = "recent" | "price_asc" | "price_desc" | "area_asc" | "area_desc";
@@ -132,6 +134,10 @@ export function PropertyListClient({ properties }: PropertyListClientProps) {
               type={property.type}
               characteristics={JSON.parse(property.characteristics || "[]")}
               image={property.coverImage}
+              allow_resale={property.allow_resale}
+              resale_commission_percent={property.resale_commission_percent}
+              neighborhood={property.neighborhood}
+              description={property.description}
             />
           ))}
         </div>

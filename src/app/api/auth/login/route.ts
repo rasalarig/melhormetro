@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { upsertUser, loginWithPassword, createSession, setSessionCookie, ensureSellerExists } from '@/lib/auth';
+import { upsertUser, loginWithPassword, createSession, setSessionCookie, ensureSellerExists, ensureCompradorProfile } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
       user = await upsertUser(trimmedEmail, userName);
     }
 
-    // Ensure seller record exists
+    // Ensure seller record and comprador profile exist
     await ensureSellerExists(user.id, user.name, user.email);
+    await ensureCompradorProfile(user.id);
 
     const sessionId = await createSession(user.id);
     setSessionCookie(sessionId);
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         avatar_url: user.avatar_url,
         accepted_seller_terms: user.accepted_seller_terms || false,
+        profiles: [{ profile_type: 'comprador' }],
       },
     });
   } catch (error) {

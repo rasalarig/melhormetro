@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Heart, Film, Home } from "lucide-react";
+import { LogIn, LogOut, Heart, Film, Home, ArrowLeft } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 
@@ -32,8 +32,16 @@ export function PremiumNavbar() {
     <>
     {/* Mobile Header */}
     <header className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-amber-500/20 bg-[hsl(220,20%,4%)]/90 backdrop-blur-xl">
-      <div className="flex items-center justify-center h-14 px-4">
-        <Link href="/premium" className="flex items-center gap-2">
+      <div className="flex items-center justify-between h-14 px-4">
+        <Link
+          href="/"
+          className="flex items-center gap-1 text-amber-100/50 hover:text-amber-100 transition-colors"
+          aria-label="Voltar ao site"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-[10px] font-medium">Site</span>
+        </Link>
+        <Link href="/" className="flex items-center gap-2">
           <div className="h-12 overflow-hidden flex items-center">
             <img src="/logo_novo.png" alt="MelhorMetro" className="h-36 w-auto" />
           </div>
@@ -41,13 +49,14 @@ export function PremiumNavbar() {
             Premium
           </span>
         </Link>
+        <div className="w-12" />
       </div>
     </header>
 
     {/* Desktop Header */}
     <header className="hidden md:block fixed top-0 left-0 right-0 z-50 border-b border-amber-500/20 bg-[hsl(220,20%,4%)]/90 backdrop-blur-xl">
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-        <Link href="/premium" className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-2 group">
           <div className="h-12 overflow-hidden flex items-center">
             <img src="/logo_novo.png" alt="MelhorMetro" className="h-36 w-auto" />
           </div>
@@ -57,6 +66,10 @@ export function PremiumNavbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
+          <Link href="/" className="text-sm text-amber-100/40 hover:text-amber-100/80 transition-colors flex items-center gap-1">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Voltar ao site
+          </Link>
           <Link href="/premium/imoveis" className="text-sm text-amber-100/60 hover:text-amber-100 transition-colors flex items-center gap-1">
             <Home className="w-3.5 h-3.5" />
             Imóveis
@@ -99,13 +112,6 @@ export function PremiumNavbar() {
                         <p className="text-sm font-medium text-amber-100 truncate">{user.name}</p>
                         <p className="text-xs text-amber-100/40 truncate">{user.email}</p>
                       </div>
-                      <Link
-                        href="/"
-                        className="block px-3 py-2 text-sm text-amber-100/60 hover:bg-amber-500/10 transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        Voltar ao MelhorMetro
-                      </Link>
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"

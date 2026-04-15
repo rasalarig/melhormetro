@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { SlidersHorizontal, Menu, X, LogIn, LogOut, Heart, Bell, Film, DollarSign, Home, Plus, MessageCircle, Users, Crown, Settings } from "lucide-react";
+import { SlidersHorizontal, Menu, X, LogIn, LogOut, Heart, Bell, Film, DollarSign, Home, Plus, MessageCircle, Users, Crown, Settings, UserCircle, Handshake, Building2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
@@ -76,6 +76,8 @@ export function Navbar() {
     setMobileOpen(false);
   };
 
+  const isAutonomo = user?.profiles?.some((p) => p.profile_type === "autonomo") ?? false;
+
   const getInitial = (name: string) => {
     return name.charAt(0).toUpperCase();
   };
@@ -96,6 +98,9 @@ export function Navbar() {
         <div className="border-t border-border/40 bg-background/95 backdrop-blur-xl max-h-[70vh] overflow-y-auto">
           <nav className="px-4 py-4 flex flex-col gap-3">
             <Link href="/imoveis" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Imóveis</Link>
+            <Link href="/condominios" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+              <Building2 className="w-3.5 h-3.5" /> Condomínios
+            </Link>
             <Link href="/busca" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Filtro</Link>
             <Link href="/premium" className="text-sm py-2 flex items-center gap-2 text-amber-500 font-medium" onClick={() => setMobileOpen(false)}>
               <Crown className="w-3.5 h-3.5" /> Premium
@@ -131,6 +136,11 @@ export function Navbar() {
                     </span>
                   )}
                 </Link>
+                {isAutonomo && (
+                  <Link href="/autonomo" className="text-sm py-2 flex items-center gap-2 text-teal-400 font-medium" onClick={() => setMobileOpen(false)}>
+                    <Handshake className="w-3.5 h-3.5" /> Comercializar
+                  </Link>
+                )}
                 <div className="border-t border-border/40 my-1" />
                 <Link href="/vender/meus-imoveis" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
                   <Home className="w-3.5 h-3.5" /> Meus Imóveis
@@ -141,11 +151,17 @@ export function Navbar() {
                 <Link href="/vender/imovel" className="text-sm py-2 flex items-center gap-2 text-emerald-500 font-medium" onClick={() => setMobileOpen(false)}>
                   <Plus className="w-3.5 h-3.5" /> Cadastrar Imóvel
                 </Link>
+                <Link href="/perfil" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+                  <UserCircle className="w-3.5 h-3.5" /> Meu Perfil
+                </Link>
               </>
             )}
 
             {!loading && !user && (
               <>
+                <Link href="/reels" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+                  <Film className="w-3.5 h-3.5" /> Tours
+                </Link>
                 <Link href="/para-voce" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
                   <DollarSign className="w-3.5 h-3.5" /> Planos
                 </Link>
@@ -208,6 +224,10 @@ export function Navbar() {
           <Link href="/imoveis" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Imóveis
           </Link>
+          <Link href="/condominios" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            <Building2 className="w-3.5 h-3.5" />
+            Condomínios
+          </Link>
           <Link href="/busca" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Filtro
@@ -251,6 +271,12 @@ export function Navbar() {
                   </span>
                 )}
               </Link>
+              {isAutonomo && (
+                <Link href="/autonomo" className="text-sm text-teal-400 hover:text-teal-300 transition-colors flex items-center gap-1 font-medium">
+                  <Handshake className="w-3.5 h-3.5" />
+                  Comercializar
+                </Link>
+              )}
               <Link href="/vender/meus-imoveis" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                 <Home className="w-3.5 h-3.5" />
                 Meus Imóveis
@@ -270,6 +296,10 @@ export function Navbar() {
 
           {!loading && !user && (
             <>
+              <Link href="/reels" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                <Film className="w-3.5 h-3.5" />
+                Tours
+              </Link>
               <Link href="/para-voce" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5" />
                 Planos
@@ -328,6 +358,14 @@ export function Navbar() {
                       >
                         Leads
                       </Link>
+                      <Link
+                        href="/perfil"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <UserCircle className="w-3.5 h-3.5" />
+                        Meu Perfil
+                      </Link>
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-accent/50 transition-colors flex items-center gap-2"
@@ -361,6 +399,9 @@ export function Navbar() {
         <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-xl">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
             <Link href="/imoveis" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Imóveis</Link>
+            <Link href="/condominios" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+              <Building2 className="w-3.5 h-3.5" /> Condomínios
+            </Link>
             <Link href="/busca" className="text-sm py-2" onClick={() => setMobileOpen(false)}>Filtro</Link>
             <Link href="/premium" className="text-sm py-2 flex items-center gap-2 text-amber-500 font-medium" onClick={() => setMobileOpen(false)}>
               <Crown className="w-3.5 h-3.5" /> Premium
@@ -396,6 +437,11 @@ export function Navbar() {
                     </span>
                   )}
                 </Link>
+                {isAutonomo && (
+                  <Link href="/autonomo" className="text-sm py-2 flex items-center gap-2 text-teal-400 font-medium" onClick={() => setMobileOpen(false)}>
+                    <Handshake className="w-3.5 h-3.5" /> Comercializar
+                  </Link>
+                )}
                 <div className="border-t border-border/40 my-1" />
                 <Link href="/vender/meus-imoveis" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
                   <Home className="w-3.5 h-3.5" /> Meus Imóveis
@@ -406,11 +452,17 @@ export function Navbar() {
                 <Link href="/vender/imovel" className="text-sm py-2 flex items-center gap-2 text-emerald-500 font-medium" onClick={() => setMobileOpen(false)}>
                   <Plus className="w-3.5 h-3.5" /> Cadastrar Imóvel
                 </Link>
+                <Link href="/perfil" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+                  <UserCircle className="w-3.5 h-3.5" /> Meu Perfil
+                </Link>
               </>
             )}
 
             {!loading && !user && (
               <>
+                <Link href="/reels" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+                  <Film className="w-3.5 h-3.5" /> Tours
+                </Link>
                 <Link href="/para-voce" className="text-sm py-2 flex items-center gap-2" onClick={() => setMobileOpen(false)}>
                   <DollarSign className="w-3.5 h-3.5" /> Planos
                 </Link>

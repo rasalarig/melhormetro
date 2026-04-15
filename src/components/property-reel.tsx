@@ -27,6 +27,8 @@ interface PropertyReelProps {
   state: string;
   characteristics: string[];
   images: PropertyImage[];
+  tourTitle?: string;
+  tourId?: number;
 }
 
 const typeLabels: Record<string, string> = {
@@ -56,6 +58,7 @@ export function PropertyReel({
   state,
   characteristics,
   images,
+  tourTitle,
 }: PropertyReelProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
@@ -239,7 +242,6 @@ export function PropertyReel({
                   src={url}
                   className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
                   style={{ opacity: index === currentImageIndex ? 1 : 0 }}
-                  muted
                   loop
                   playsInline
                   preload="auto"
@@ -293,6 +295,15 @@ export function PropertyReel({
           {typeLabels[type] || type}
         </Badge>
       </div>
+
+      {/* Tour title overlay (top-right, only when it's a named non-original tour) */}
+      {tourTitle && (
+        <div className="absolute top-4 right-4 z-20 max-w-[55%]">
+          <span className="inline-block bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full truncate">
+            {tourTitle}
+          </span>
+        </div>
+      )}
 
       {/* Content overlay at bottom */}
       <div className="absolute bottom-0 left-0 right-16 z-20 p-5 pb-20 md:pb-6">

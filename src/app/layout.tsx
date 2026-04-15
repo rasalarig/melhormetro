@@ -15,6 +15,17 @@ const geistSans = localFont({
 export const metadata: Metadata = {
   title: "MelhorMetro | Busca Inteligente de Imóveis",
   description: "Encontre o imóvel dos seus sonhos usando inteligência artificial. Busque por qualquer característica: terrenos com árvores, casas com vista, e muito mais.",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  other: {
+    'X-UA-Compatible': 'IE=edge',
+  },
 };
 
 export const viewport: Viewport = {

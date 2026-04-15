@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import { AlertsPageClient } from "@/components/alerts-page";
 
 export const metadata = {
-  title: "Alertas de Busca | MelhorMetro",
+  title: "Perfil de Interesse | MelhorMetro",
   description:
-    "Crie alertas para ser notificado quando novos imóveis combinarem com o que você procura",
+    "Descreva o imóvel que você procura e receba notificações quando novos imóveis compatíveis forem cadastrados.",
 };
 
 export default function AlertasPage() {

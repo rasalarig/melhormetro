@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,19 @@ import {
   CheckCircle,
   Tag,
   Sparkles,
+  GripVertical,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const MapPicker = dynamic(() => import("./map-picker"), { ssr: false });
+
+interface Condominium {
+  id: number;
+  name: string;
+  slug: string;
+  city: string | null;
+  state: string | null;
+}
 
 interface PropertyFormProps {
   initialData?: {
@@ -37,6 +46,13 @@ interface PropertyFormProps {
     details: Record<string, unknown>;
     latitude?: number | null;
     longitude?: number | null;
+    address_privacy?: "exact" | "approximate";
+    approximate_radius_km?: number | null;
+    allow_resale?: boolean;
+    resale_commission_percent?: number | null;
+    resale_terms?: string | null;
+    facade_orientation?: string | null;
+    condominium_id?: number | null;
   };
 }
 
@@ -68,6 +84,23 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
   const [longitude, setLongitude] = useState<number | null>(
     initialData?.longitude ?? null
   );
+  const [addressPrivacy, setAddressPrivacy] = useState<"exact" | "approximate">(
+    initialData?.address_privacy ?? "exact"
+  );
+  const [approximateRadiusKm, setApproximateRadiusKm] = useState<number>(
+    initialData?.approximate_radius_km ?? 1.0
+  );
+
+  const [facadeOrientation, setFacadeOrientation] = useState<string>(
+    initialData?.facade_orientation ?? ""
+  );
+
+  // Resale / recomercialização
+  const [allowResale, setAllowResale] = useState<boolean>(initialData?.allow_resale ?? false);
+  const [resaleCommissionPercent, setResaleCommissionPercent] = useState<string>(
+    initialData?.resale_commission_percent != null ? String(initialData.resale_commission_percent) : ""
+  );
+  const [resaleTerms, setResaleTerms] = useState<string>(initialData?.resale_terms ?? "");
 
   // Characteristics (tags)
   const [characteristics, setCharacteristics] = useState<string[]>(
@@ -95,10 +128,29 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
     (initialData?.details?.paved_street as boolean) || false
   );
 
+  // Condominium
+  const [condominiumId, setCondominiumId] = useState<number | null>(
+    initialData?.condominium_id ?? null
+  );
+  const [condominiums, setCondominiums] = useState<Condominium[]>([]);
+
+  useEffect(() => {
+    if (type === "casa_condominio" || type === "terreno_condominio") {
+      fetch("/api/condominiums")
+        .then((r) => r.json())
+        .then((data) => setCondominiums(data.condominiums || []))
+        .catch(console.error);
+    }
+  }, [type]);
+
   // Images
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [aiGenerating, setAiGenerating] = useState(false);
+  // Drag-to-reorder state
+  const [imgDragIndex, setImgDragIndex] = useState<number | null>(null);
+  const [imgOverIndex, setImgOverIndex] = useState<number | null>(null);
+  const imgDragRef = useRef<number | null>(null);
 
   const addTag = () => {
     const tag = newTag.trim().toLowerCase();
@@ -136,6 +188,45 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const handleImgDragStart = useCallback((e: React.DragEvent, index: number) => {
+    e.dataTransfer.effectAllowed = "move";
+    imgDragRef.current = index;
+    setImgDragIndex(index);
+  }, []);
+
+  const handleImgDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setImgOverIndex(index);
+  }, []);
+
+  const handleImgDrop = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    const from = imgDragRef.current;
+    setImgDragIndex(null);
+    setImgOverIndex(null);
+    imgDragRef.current = null;
+    if (from === null || from === index) return;
+    setImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    setImagePreviews((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+  }, []);
+
+  const handleImgDragEnd = useCallback(() => {
+    setImgDragIndex(null);
+    setImgOverIndex(null);
+    imgDragRef.current = null;
+  }, []);
 
   const generateWithAI = async () => {
     setAiGenerating(true);
@@ -196,6 +287,8 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
         neighborhood,
         latitude,
         longitude,
+        address_privacy: addressPrivacy,
+        approximate_radius_km: approximateRadiusKm,
         characteristics,
         details: {
           bedrooms: parseInt(bedrooms),
@@ -205,6 +298,11 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
           gated_community: gatedCommunity,
           paved_street: pavedStreet,
         },
+        allow_resale: allowResale,
+        resale_commission_percent: allowResale && resaleCommissionPercent ? parseFloat(resaleCommissionPercent) : null,
+        resale_terms: allowResale && resaleTerms.trim() ? resaleTerms.trim() : null,
+        facade_orientation: facadeOrientation || null,
+        condominium_id: (type === "casa_condominio" || type === "terreno_condominio") ? condominiumId : null,
       };
 
       const url = isEditing
@@ -401,6 +499,35 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
             </select>
           </div>
         </div>
+
+        {/* Condominium selector */}
+        {(type === "casa_condominio" || type === "terreno_condominio") && (
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">
+              Condomínio
+            </label>
+            <select
+              value={condominiumId ?? ""}
+              onChange={(e) => setCondominiumId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="">— Selecionar condomínio —</option>
+              {condominiums.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.city ? ` — ${c.city}` : ""}
+                </option>
+              ))}
+            </select>
+            {condominiums.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Nenhum condomínio cadastrado. O admin pode criar em{" "}
+                <a href="/admin/condominios" className="text-emerald-400 hover:underline" target="_blank" rel="noreferrer">
+                  Painel Admin → Condomínios
+                </a>.
+              </p>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Location */}
@@ -467,6 +594,95 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
             setLongitude(lng);
           }}
         />
+
+        {/* Address Privacy */}
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground block font-medium">
+            Exibição do endereço
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setAddressPrivacy("exact")}
+              className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                addressPrivacy === "exact"
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
+                  : "border-border/50 bg-background text-muted-foreground hover:border-emerald-500/50"
+              }`}
+            >
+              Endereço exato
+            </button>
+            <button
+              type="button"
+              onClick={() => setAddressPrivacy("approximate")}
+              className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                addressPrivacy === "approximate"
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
+                  : "border-border/50 bg-background text-muted-foreground hover:border-emerald-500/50"
+              }`}
+            >
+              Localização aproximada
+            </button>
+          </div>
+          {addressPrivacy === "approximate" && (
+            <div className="space-y-2 mt-2">
+              <p className="text-xs text-muted-foreground">
+                O mapa mostrará apenas uma área aproximada. O endereço exato não será exibido.
+              </p>
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-muted-foreground whitespace-nowrap">
+                  Raio: {approximateRadiusKm.toFixed(1)} km
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="5"
+                  step="0.5"
+                  value={approximateRadiusKm}
+                  onChange={(e) => setApproximateRadiusKm(Number(e.target.value))}
+                  className="flex-1 accent-emerald-500"
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>0,5 km</span>
+                <span>5 km</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Facade Orientation */}
+      <Card className="p-6 bg-card border-border/50 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Orientação Solar</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Indica para qual direção a fachada principal do imóvel está voltada. Ajuda compradores a entender a incidência de sol.
+          </p>
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground mb-1 block">
+            Orientação da fachada
+          </label>
+          <select
+            value={facadeOrientation}
+            onChange={(e) => setFacadeOrientation(e.target.value)}
+            className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+          >
+            <option value="">Não informado</option>
+            <option value="norte">Norte</option>
+            <option value="nordeste">Nordeste</option>
+            <option value="leste">Leste</option>
+            <option value="sudeste">Sudeste</option>
+            <option value="sul">Sul</option>
+            <option value="sudoeste">Sudoeste</option>
+            <option value="oeste">Oeste</option>
+            <option value="noroeste">Noroeste</option>
+          </select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Opcional. No hemisfério sul, fachadas voltadas para o Norte recebem mais sol ao longo do ano.
+          </p>
+        </div>
       </Card>
 
       {/* Characteristics / Tags */}
@@ -620,6 +836,73 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
         </div>
       </Card>
 
+      {/* Recomercialização */}
+      <Card className="p-6 bg-card border-border/50 space-y-4">
+        <h2 className="text-lg font-semibold">Recomercialização</h2>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Permitir que autônomos comercializem este imóvel
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Agentes autônomos poderão ver e divulgar este imóvel mediante comissão
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAllowResale(!allowResale)}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+              allowResale ? "bg-emerald-500" : "bg-border/60"
+            }`}
+            aria-checked={allowResale}
+            role="switch"
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                allowResale ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {allowResale && (
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">
+                Comissão oferecida ao autônomo (%) *
+              </label>
+              <Input
+                type="number"
+                value={resaleCommissionPercent}
+                onChange={(e) => setResaleCommissionPercent(e.target.value)}
+                placeholder="Ex: 3.0"
+                min="0"
+                max="100"
+                step="0.5"
+                className="bg-secondary/50 border-border/50"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Percentual do valor de venda que será pago ao autônomo como comissão.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">
+                Termos e condições (opcional)
+              </label>
+              <Textarea
+                value={resaleTerms}
+                onChange={(e) => setResaleTerms(e.target.value)}
+                placeholder="Ex: Comissão paga após assinatura do contrato. Exclusividade de 30 dias."
+                rows={3}
+                className="bg-secondary/50 border-border/50"
+              />
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Images */}
       <Card className="p-6 bg-card border-border/50 space-y-4">
         <h2 className="text-lg font-semibold">Imagens</h2>
@@ -645,28 +928,53 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
         </div>
 
         {imagePreviews.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {imagePreviews.map((preview, i) => (
-              <div
-                key={i}
-                className="relative group rounded-lg overflow-hidden aspect-square bg-secondary"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={preview}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {imagePreviews.map((preview, i) => (
+                <div
+                  key={i}
+                  draggable
+                  onDragStart={(e) => handleImgDragStart(e, i)}
+                  onDragOver={(e) => handleImgDragOver(e, i)}
+                  onDrop={(e) => handleImgDrop(e, i)}
+                  onDragEnd={handleImgDragEnd}
+                  className={`relative group rounded-lg overflow-hidden aspect-square bg-secondary cursor-grab active:cursor-grabbing transition-opacity ${
+                    imgDragIndex === i
+                      ? "opacity-40"
+                      : imgOverIndex === i && imgDragIndex !== null
+                      ? "ring-2 ring-emerald-500"
+                      : ""
+                  }`}
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={preview}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    draggable={false}
+                  />
+                  {/* Order number */}
+                  <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white font-bold px-1.5 py-0.5 rounded">
+                    {i + 1}
+                  </span>
+                  {/* Drag handle */}
+                  <div className="absolute top-1 left-1 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <GripVertical className="w-3.5 h-3.5" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Arraste as imagens para reordenar. O número indica a posição na galeria.
+            </p>
+          </>
         )}
       </Card>
 
