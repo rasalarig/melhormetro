@@ -29,7 +29,7 @@ import { ReimaginePanelTrigger, ReimaginePanelDialog } from "./reimagine-panel";
 import { isVideoUrl, isExternalVideoUrl, resolveMediaUrl } from "@/lib/media-utils";
 import { useAuth } from "@/components/auth-provider";
 import { PropertyChat } from "@/components/property-chat";
-import { Eye, X as XIcon } from "lucide-react";
+import { Eye, X as XIcon, Pencil, Film, BarChart3 } from "lucide-react";
 
 function StreetViewSection({ lat, lng }: { lat: number; lng: number }) {
   const [showStreetView, setShowStreetView] = useState(false);
@@ -144,6 +144,7 @@ export function PropertyDetail({ property }: PropertyProps) {
 
 
   const isAutonomo = user?.profiles?.some((p) => p.profile_type === "autonomo") ?? false;
+  const isOwner = user && property.seller_user_id && user.id === property.seller_user_id;
 
   // Build the media items list for the gallery.
   // Priority: property.mediaItems (from tour_media or pre-built) → property.images fallback.
@@ -511,7 +512,7 @@ export function PropertyDetail({ property }: PropertyProps) {
             </div>
           </div>
 
-          {/* Sidebar - Price & Contact */}
+          {/* Sidebar - Price & Contact / Owner Panel */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <Card className="p-6 bg-card border-border/50">
@@ -526,28 +527,64 @@ export function PropertyDetail({ property }: PropertyProps) {
                   </p>
                 )}
 
-                <Button
-                  onClick={() => setShowInterest(true)}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white mb-3"
-                >
-                  <Phone className="w-4 h-4 mr-2" />
-                  Tenho Interesse
-                </Button>
+                {isOwner ? (
+                  /* Owner actions */
+                  <div className="space-y-2">
+                    <div className="text-xs text-amber-400 font-medium bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3 text-center">
+                      Este é o seu imóvel
+                    </div>
+                    <Link href={`/vender/imovel/${property.id}`}>
+                      <Button className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Editar Imóvel
+                      </Button>
+                    </Link>
+                    <Link href={`/vender/imovel/${property.id}/tours`}>
+                      <Button variant="outline" className="w-full border-border/50 mt-2">
+                        <Film className="w-4 h-4 mr-2" />
+                        Gerenciar Tours
+                      </Button>
+                    </Link>
+                    <Link href="/vender/leads">
+                      <Button variant="outline" className="w-full border-border/50 mt-2">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Ver Leads
+                      </Button>
+                    </Link>
+                    <Link href="/mensagens">
+                      <Button variant="outline" className="w-full border-border/50 mt-2">
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Mensagens
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  /* Visitor actions */
+                  <>
+                    <Button
+                      onClick={() => setShowInterest(true)}
+                      className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white mb-3"
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
+                      Tenho Interesse
+                    </Button>
 
-                <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`Olá! Tenho interesse no imóvel: ${property.title}\n${property.city}, ${property.state}\nValor: ${formatPrice(property.price)}\n\nVi no MelhorMetro!`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <Button
-                    variant="outline"
-                    className="w-full border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    WhatsApp
-                  </Button>
-                </a>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`Olá! Tenho interesse no imóvel: ${property.title}\n${property.city}, ${property.state}\nValor: ${formatPrice(property.price)}\n\nVi no MelhorMetro!`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <Button
+                        variant="outline"
+                        className="w-full border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        WhatsApp
+                      </Button>
+                    </a>
+                  </>
+                )}
               </Card>
 
               <Card className="p-4 bg-card border-border/50">

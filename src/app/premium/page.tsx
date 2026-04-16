@@ -84,7 +84,7 @@ export default function PremiumPage() {
           ) : isPremium ? (
             /* Premium user - show explore buttons */
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/premium/reels">
+              <Link href="/premium/tours">
                 <Button size="lg" className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-semibold px-8 shadow-lg shadow-amber-500/20">
                   <Film className="w-5 h-5 mr-2" />
                   Explorar Tours

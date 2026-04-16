@@ -1368,25 +1368,25 @@ export default function CadastrarImovelPage() {
 
                         {/* Cover badge */}
                         {entry.is_cover && (
-                          <span className="absolute top-1 left-1 text-[9px] bg-yellow-500 text-black font-bold px-1.5 py-0.5 rounded">
+                          <span className="absolute top-7 left-1 text-[9px] bg-yellow-500 text-black font-bold px-1.5 py-0.5 rounded z-10">
                             CAPA
                           </span>
                         )}
 
                         {/* Type badge */}
                         {entry.type === "video" && (
-                          <span className="absolute top-1 right-1 text-[9px] bg-blue-500 text-white font-bold px-1.5 py-0.5 rounded">
+                          <span className="absolute top-1 right-1 text-[9px] bg-blue-500 text-white font-bold px-1.5 py-0.5 rounded z-10">
                             VIDEO
                           </span>
                         )}
 
-                        {/* Drag handle */}
-                        <div className="absolute top-1 right-1 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          <GripVertical className="w-3.5 h-3.5" />
+                        {/* Drag handle - always visible */}
+                        <div className="absolute top-1 left-1 z-10 bg-black/70 rounded p-0.5 cursor-grab active:cursor-grabbing text-white/90">
+                          <GripVertical className="w-4 h-4" />
                         </div>
 
                         {/* Hover overlay with actions - always visible on mobile */}
-                        <div className="absolute inset-0 bg-black/30 md:bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-black/30 md:bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end justify-center gap-2 pb-8" onDragStart={(e) => e.stopPropagation()}>
                           <button
                             type="button"
                             onClick={(e) => {

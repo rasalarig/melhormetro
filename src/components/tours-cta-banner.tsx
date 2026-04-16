@@ -43,7 +43,7 @@ export function ToursCTABanner() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Link href="/reels">
+          <Link href="/tours">
             <Button
               size="sm"
               className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium"

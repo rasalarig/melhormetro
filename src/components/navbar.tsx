@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   SlidersHorizontal, Menu, X, LogIn, LogOut, Heart, Bell, Film,
   DollarSign, Home, Plus, MessageCircle, Users, Crown, Settings,
-  UserCircle, Handshake, Building2, ChevronDown, Search, Map,
+  UserCircle, Handshake, Building2, ChevronDown, Search, Map, House,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -115,6 +115,9 @@ export function Navbar() {
             <nav className="px-4 py-4 flex flex-col gap-1">
               {/* Explorar */}
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 px-2 pt-2">Explorar</p>
+              <Link href="/" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
+                <House className="w-4 h-4 text-muted-foreground" /> Início
+              </Link>
               <Link href="/imoveis" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
                 <Home className="w-4 h-4 text-muted-foreground" /> Imóveis
               </Link>
@@ -124,7 +127,7 @@ export function Navbar() {
               <Link href="/busca" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
                 <Search className="w-4 h-4 text-muted-foreground" /> Busca Inteligente
               </Link>
-              <Link href="/reels" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
+              <Link href="/tours" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
                 <Film className="w-4 h-4 text-muted-foreground" /> Tours
               </Link>
 
@@ -237,6 +240,11 @@ export function Navbar() {
               </button>
               {exploreDd.open && (
                 <div className="absolute left-0 top-full mt-1 w-56 rounded-xl border border-border/50 bg-card/95 backdrop-blur-lg shadow-xl py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <Link href="/" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors" onClick={() => exploreDd.setOpen(false)}>
+                    <House className="w-4 h-4 text-emerald-400" />
+                    <div><p className="font-medium">Início</p><p className="text-[11px] text-muted-foreground">Página inicial</p></div>
+                  </Link>
+                  <div className="border-t border-border/30 my-1" />
                   <Link href="/imoveis" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors" onClick={() => exploreDd.setOpen(false)}>
                     <Home className="w-4 h-4 text-emerald-400" />
                     <div><p className="font-medium">Imóveis</p><p className="text-[11px] text-muted-foreground">Todos os imóveis</p></div>
@@ -245,7 +253,7 @@ export function Navbar() {
                     <Building2 className="w-4 h-4 text-blue-400" />
                     <div><p className="font-medium">Condomínios</p><p className="text-[11px] text-muted-foreground">Dossiês completos</p></div>
                   </Link>
-                  <Link href="/reels" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors" onClick={() => exploreDd.setOpen(false)}>
+                  <Link href="/tours" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors" onClick={() => exploreDd.setOpen(false)}>
                     <Film className="w-4 h-4 text-violet-400" />
                     <div><p className="font-medium">Tours</p><p className="text-[11px] text-muted-foreground">Vídeos dos imóveis</p></div>
                   </Link>

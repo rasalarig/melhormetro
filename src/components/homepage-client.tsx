@@ -319,7 +319,7 @@ export function HomepageFeaturedProperties() {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
-          <Link href="/reels">
+          <Link href="/tours">
             <Button
               variant="ghost"
               className="text-muted-foreground hover:text-emerald-300"

@@ -123,7 +123,7 @@ export function FavoritesPage() {
               Explore os Tours e curta os imóveis que mais gostar!
             </p>
             <Link
-              href="/reels"
+              href="/tours"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium hover:from-emerald-600 hover:to-teal-700 transition-all"
             >
               Explorar Tours

@@ -74,7 +74,7 @@ export function PremiumNavbar() {
             <Home className="w-3.5 h-3.5" />
             Imóveis
           </Link>
-          <Link href="/premium/reels" className="text-sm text-amber-100/60 hover:text-amber-100 transition-colors flex items-center gap-1">
+          <Link href="/premium/tours" className="text-sm text-amber-100/60 hover:text-amber-100 transition-colors flex items-center gap-1">
             <Film className="w-3.5 h-3.5" />
             Tours
           </Link>
