@@ -1211,7 +1211,11 @@ export default function CadastrarImovelPage() {
                   <input
                     type="number"
                     value={resaleCommissionPercent}
-                    onChange={(e) => setResaleCommissionPercent(e.target.value)}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      if (e.target.value === "" || isNaN(v)) { setResaleCommissionPercent(e.target.value); return; }
+                      setResaleCommissionPercent(v > 100 ? "100" : v < 0 ? "0" : e.target.value);
+                    }}
                     placeholder="Ex: 3.0"
                     min="0"
                     max="100"

@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         address_privacy || 'exact',
         approximate_radius_km || 1.0,
         allow_resale || false,
-        resale_commission_percent != null ? resale_commission_percent : null,
+        resale_commission_percent != null ? Math.min(100, Math.max(0, Number(resale_commission_percent))) : null,
         resale_terms || null,
         facade_orientation || null,
         condominium_id != null ? condominium_id : null,
