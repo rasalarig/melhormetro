@@ -46,11 +46,13 @@ export async function createSession(userId: number): Promise<string> {
 
 export function setSessionCookie(sessionId: string) {
   const cookieStore = cookies();
+  const isProd = process.env.NODE_ENV === 'production';
   cookieStore.set(COOKIE_NAME, sessionId, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60,
+    secure: isProd,
   });
 }
 

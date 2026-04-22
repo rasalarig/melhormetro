@@ -38,6 +38,9 @@ const nextConfig = {
     serverComponentsExternalPackages: ['pg', '@anthropic-ai/sdk', 'openai', 'fluent-ffmpeg', '@ffmpeg-installer/ffmpeg'],
     workerThreads: false,
     cpus: 1,
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
   },
   webpack: (config) => {
     // Cache in memory only — avoids Windows file lock corruption

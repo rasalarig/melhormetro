@@ -39,8 +39,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.is_admin) {
-      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: 'Você precisa estar logado' }, { status: 401 });
+    }
+    if (!user.is_admin) {
+      return NextResponse.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
     }
 
     const body = await request.json();

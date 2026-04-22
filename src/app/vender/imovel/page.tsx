@@ -473,40 +473,32 @@ export default function CadastrarImovelPage() {
     const filesToUpload = mediaEntries.filter((e) => e.file);
     if (filesToUpload.length === 0) return [];
 
-    setUploadProgress("Enviando arquivos...");
-
-    const formData = new FormData();
-    for (const entry of filesToUpload) {
-      formData.append("files", entry.file!);
-    }
-
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Falha no upload dos arquivos");
-    }
-
-    const data = await res.json();
-    const uploadedFiles = data.files as {
-      url: string;
-      originalName: string;
-      type: string;
-    }[];
-
-    // Map uploaded URLs back to entries with is_cover info
     const results: { url: string; is_cover: boolean }[] = [];
-    let uploadIndex = 0;
-    for (const entry of mediaEntries) {
-      if (entry.file) {
+
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const entry = filesToUpload[i];
+      setUploadProgress(`Enviando arquivo ${i + 1} de ${filesToUpload.length}...`);
+
+      const formData = new FormData();
+      formData.append("files", entry.file!);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Falha no upload do arquivo ${i + 1}`);
+      }
+
+      const data = await res.json();
+      const uploaded = data.files?.[0];
+      if (uploaded) {
         results.push({
-          url: uploadedFiles[uploadIndex].url,
+          url: uploaded.url,
           is_cover: entry.is_cover,
         });
-        uploadIndex++;
       }
     }
 
