@@ -306,12 +306,12 @@ export function PropertyReel({
       )}
 
       {/* Content overlay at bottom */}
-      <div className="absolute bottom-0 left-0 right-16 z-20 p-5 pb-20 md:pb-6">
-        <p className="text-emerald-400 font-bold text-2xl md:text-3xl mb-1">
+      <div className="absolute bottom-0 left-0 right-14 z-20 p-4 md:p-5 pb-20 md:pb-6">
+        <p className="text-emerald-400 font-bold text-xl md:text-3xl mb-1">
           {formatPrice(price)}
         </p>
 
-        <h2 className="text-white font-semibold text-base md:text-lg mb-2 line-clamp-2">
+        <h2 className="text-white font-semibold text-sm md:text-lg mb-1.5 line-clamp-2 leading-snug">
           {title}
         </h2>
 
