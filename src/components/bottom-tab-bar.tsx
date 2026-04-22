@@ -7,13 +7,13 @@ import { useAuth } from "@/components/auth-provider";
 import { useState, useEffect, useRef } from "react";
 
 const publicTabs = [
-  { href: "/", icon: Film, label: "Tours" },
+  { href: "/tours", icon: Film, label: "Tours" },
   { href: "/busca", icon: SlidersHorizontal, label: "Filtro" },
   { href: "/login", icon: User, label: "Entrar" },
 ];
 
 const authedTabs = [
-  { href: "/", icon: Film, label: "Tours" },
+  { href: "/tours", icon: Film, label: "Tours" },
   { href: "/busca", icon: SlidersHorizontal, label: "Filtro" },
   { href: "/favoritos", icon: Heart, label: "Favoritos" },
   { href: "/vender/meus-imoveis", icon: Home, label: "Imóveis" },
