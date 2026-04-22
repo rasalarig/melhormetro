@@ -57,8 +57,8 @@ export async function PUT(
 ) {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.is_admin) {
-      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: 'Você precisa estar logado' }, { status: 401 });
     }
 
     const condo = await getOne('SELECT * FROM condominiums WHERE slug = $1', [params.slug]);
@@ -110,8 +110,8 @@ export async function DELETE(
 ) {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.is_admin) {
-      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: 'Você precisa estar logado' }, { status: 401 });
     }
 
     const condo = await getOne('SELECT * FROM condominiums WHERE slug = $1', [params.slug]);

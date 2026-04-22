@@ -42,9 +42,6 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Você precisa estar logado' }, { status: 401 });
     }
-    if (!user.is_admin) {
-      return NextResponse.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
-    }
 
     const body = await request.json();
     const { name, description, city, state, neighborhood, amenities, lat, lng, cover_image_url } = body;
