@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +87,37 @@ export default function AdminCondominiosPage() {
   const [success, setSuccess] = useState("");
   const [newAmenity, setNewAmenity] = useState("");
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+
+  // IBGE location data
+  const [ibgeStates, setIbgeStates] = useState<{ sigla: string; nome: string }[]>([]);
+  const [ibgeCities, setIbgeCities] = useState<{ id: number; nome: string }[]>([]);
+  const ibgeCitiesCache = useRef<Record<string, { id: number; nome: string }[]>>({});
+
+  useEffect(() => {
+    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome")
+      .then((r) => r.json())
+      .then((data: { sigla: string; nome: string }[]) => setIbgeStates(data))
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const uf = form.state;
+    if (!uf) {
+      setIbgeCities([]);
+      return;
+    }
+    if (ibgeCitiesCache.current[uf]) {
+      setIbgeCities(ibgeCitiesCache.current[uf]);
+      return;
+    }
+    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`)
+      .then((r) => r.json())
+      .then((data: { id: number; nome: string }[]) => {
+        ibgeCitiesCache.current[uf] = data;
+        setIbgeCities(data);
+      })
+      .catch(console.error);
+  }, [form.state]);
 
   const fetchCondominiums = async () => {
     setLoading(true);
@@ -299,23 +330,33 @@ export default function AdminCondominiosPage() {
 
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Cidade</label>
-                <Input
+                <input
+                  list="ibge-cities-list-condo"
                   value={form.city}
                   onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                  placeholder="Itapetininga"
-                  className="bg-secondary/50 border-border/50"
+                  placeholder={form.state ? "Digite para buscar..." : "Selecione o estado primeiro"}
+                  disabled={!form.state}
+                  className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
                 />
+                <datalist id="ibge-cities-list-condo">
+                  {ibgeCities.map((c) => (
+                    <option key={c.id} value={c.nome} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Estado (UF)</label>
-                <Input
+                <select
                   value={form.state}
-                  onChange={(e) => setForm((f) => ({ ...f, state: e.target.value.toUpperCase().slice(0, 2) }))}
-                  placeholder="SP"
-                  maxLength={2}
-                  className="bg-secondary/50 border-border/50"
-                />
+                  onChange={(e) => setForm((f) => ({ ...f, state: e.target.value, city: "" }))}
+                  className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  <option value="">Selecione</option>
+                  {ibgeStates.map((s) => (
+                    <option key={s.sigla} value={s.sigla}>{s.sigla} - {s.nome}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="md:col-span-2">

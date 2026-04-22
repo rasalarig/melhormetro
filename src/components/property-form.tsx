@@ -128,6 +128,36 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
     (initialData?.details?.paved_street as boolean) || false
   );
 
+  // IBGE location data
+  const [ibgeStates, setIbgeStates] = useState<{ sigla: string; nome: string }[]>([]);
+  const [ibgeCities, setIbgeCities] = useState<{ id: number; nome: string }[]>([]);
+  const ibgeCitiesCache = useRef<Record<string, { id: number; nome: string }[]>>({});
+
+  useEffect(() => {
+    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome")
+      .then((r) => r.json())
+      .then((data: { sigla: string; nome: string }[]) => setIbgeStates(data))
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (!state) {
+      setIbgeCities([]);
+      return;
+    }
+    if (ibgeCitiesCache.current[state]) {
+      setIbgeCities(ibgeCitiesCache.current[state]);
+      return;
+    }
+    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${state}/municipios?orderBy=nome`)
+      .then((r) => r.json())
+      .then((data: { id: number; nome: string }[]) => {
+        ibgeCitiesCache.current[state] = data;
+        setIbgeCities(data);
+      })
+      .catch(console.error);
+  }, [state]);
+
   // Condominium
   const [condominiumId, setCondominiumId] = useState<number | null>(
     initialData?.condominium_id ?? null
@@ -552,25 +582,36 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
             <label className="text-sm text-muted-foreground mb-1 block">
               Cidade *
             </label>
-            <Input
+            <input
+              list="ibge-cities-list-form"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="Itapetininga"
+              placeholder={state ? "Digite para buscar..." : "Selecione o estado primeiro"}
+              disabled={!state}
               required
-              className="bg-secondary/50 border-border/50"
+              className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
             />
+            <datalist id="ibge-cities-list-form">
+              {ibgeCities.map((c) => (
+                <option key={c.id} value={c.nome} />
+              ))}
+            </datalist>
           </div>
           <div>
             <label className="text-sm text-muted-foreground mb-1 block">
               Estado *
             </label>
-            <Input
+            <select
               value={state}
-              onChange={(e) => setState(e.target.value)}
-              placeholder="SP"
+              onChange={(e) => { setState(e.target.value); setCity(""); }}
               required
-              className="bg-secondary/50 border-border/50"
-            />
+              className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="">Selecione</option>
+              {ibgeStates.map((s) => (
+                <option key={s.sigla} value={s.sigla}>{s.sigla} - {s.nome}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-sm text-muted-foreground mb-1 block">

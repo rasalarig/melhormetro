@@ -139,7 +139,11 @@ export default function CadastrarImovelPage() {
   const [resaleCommissionPercent, setResaleCommissionPercent] = useState("");
   const [resaleTerms, setResaleTerms] = useState("");
 
-  // UI state
+  // IBGE location data
+  const [ibgeStates, setIbgeStates] = useState<{ sigla: string; nome: string }[]>([]);
+  const [ibgeCities, setIbgeCities] = useState<{ id: number; nome: string }[]>([]);
+  const ibgeCitiesCache = useRef<Record<string, { id: number; nome: string }[]>>({});
+
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [error, setError] = useState("");
@@ -152,6 +156,33 @@ export default function CadastrarImovelPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiFilling, setAiFilling] = useState(false);
   const [aiFillSuccess, setAiFillSuccess] = useState(false);
+
+  // Fetch IBGE states on mount
+  useEffect(() => {
+    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome")
+      .then((r) => r.json())
+      .then((data: { sigla: string; nome: string }[]) => setIbgeStates(data))
+      .catch(console.error);
+  }, []);
+
+  // Fetch IBGE cities when state changes
+  useEffect(() => {
+    if (!state) {
+      setIbgeCities([]);
+      return;
+    }
+    if (ibgeCitiesCache.current[state]) {
+      setIbgeCities(ibgeCitiesCache.current[state]);
+      return;
+    }
+    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${state}/municipios?orderBy=nome`)
+      .then((r) => r.json())
+      .then((data: { id: number; nome: string }[]) => {
+        ibgeCitiesCache.current[state] = data;
+        setIbgeCities(data);
+      })
+      .catch(console.error);
+  }, [state]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -939,22 +970,31 @@ export default function CadastrarImovelPage() {
                   Cidade <span className="text-red-400">*</span>
                 </label>
                 <input
-                  type="text"
+                  list="ibge-cities-list"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="Ex: São Paulo"
+                  placeholder={state ? "Digite para buscar..." : "Selecione o estado primeiro"}
+                  disabled={!state}
                   className={inputClass}
                 />
+                <datalist id="ibge-cities-list">
+                  {ibgeCities.map((c) => (
+                    <option key={c.id} value={c.nome} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className={labelClass}>Estado</label>
-                <input
-                  type="text"
+                <select
                   value={state}
-                  onChange={(e) => setState(e.target.value)}
-                  placeholder="SP"
+                  onChange={(e) => { setState(e.target.value); setCity(""); }}
                   className={inputClass}
-                />
+                >
+                  <option value="">Selecione</option>
+                  {ibgeStates.map((s) => (
+                    <option key={s.sigla} value={s.sigla}>{s.sigla} - {s.nome}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
