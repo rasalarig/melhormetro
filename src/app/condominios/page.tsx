@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MapPin, Building2, Search, Trees, Dumbbell, Waves, Shield, Music, Swords, Baby, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MapPin, Building2, Search, Trees, Dumbbell, Waves, Shield, Music, Swords, Baby, ChevronRight, Plus } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 
 interface Condominium {
   id: number;
@@ -36,6 +38,7 @@ const AMENITY_ICONS: Record<string, { icon: React.ElementType; label: string }> 
 };
 
 export default function CondominiosPage() {
+  const { user } = useAuth();
   const [condominiums, setCondominiums] = useState<Condominium[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -66,11 +69,21 @@ export default function CondominiosPage() {
     <div className="pt-20 pb-16 px-4">
       <div className="container mx-auto max-w-5xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Condomínios</h1>
-          <p className="text-muted-foreground">
-            Explore os condomínios disponíveis e veja os imóveis em cada um
-          </p>
+        <div className="flex items-start justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Condomínios</h1>
+            <p className="text-muted-foreground">
+              Explore os condomínios disponíveis e veja os imóveis em cada um
+            </p>
+          </div>
+          {user && (
+            <Link href="/admin/condominios">
+              <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex-shrink-0">
+                <Plus className="w-4 h-4 mr-1.5" />
+                Cadastrar
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Search */}
@@ -94,9 +107,19 @@ export default function CondominiosPage() {
           <div className="text-center py-20 text-muted-foreground">
             <Building2 className="w-16 h-16 mx-auto mb-4 opacity-20" />
             <p className="text-lg font-medium">Nenhum condomínio encontrado</p>
-            {search && (
+            {search ? (
               <p className="text-sm mt-1">Tente buscar por outro nome ou cidade</p>
-            )}
+            ) : user ? (
+              <div className="mt-4">
+                <p className="text-sm mb-3">Seja o primeiro a cadastrar um condomínio!</p>
+                <Link href="/admin/condominios">
+                  <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Cadastrar Condomínio
+                  </Button>
+                </Link>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
