@@ -11,12 +11,21 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Clean up favorites for removed/unapproved properties
+    await query(`
+      DELETE FROM favorites WHERE user_id = $1 AND property_id NOT IN (
+        SELECT id FROM properties WHERE status = 'active' AND (approved = 'approved' OR approved IS NULL)
+      )
+    `, [user.id]);
+
     const favorites = await getAll(`
       SELECT p.*, f.created_at as favorited_at,
         (SELECT COUNT(*) FROM favorites WHERE property_id = p.id) as likes_count
       FROM favorites f
       JOIN properties p ON f.property_id = p.id
       WHERE f.user_id = $1
+        AND p.status = 'active'
+        AND (p.approved = 'approved' OR p.approved IS NULL)
       ORDER BY f.created_at DESC
     `, [user.id]) as Array<Record<string, unknown>>;
 
