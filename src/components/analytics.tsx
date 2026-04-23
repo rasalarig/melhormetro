@@ -27,13 +27,19 @@ export function Analytics() {
         </>
       )}
 
-      {/* Umami Analytics */}
+      {/* Umami Analytics — injected via inline script to guarantee data-website-id */}
       {umamiWebsiteId && umamiUrl && (
-        <Script
-          src={`${umamiUrl}/script.js`}
-          data-website-id={umamiWebsiteId}
-          strategy="afterInteractive"
-        />
+        <Script id="umami-analytics" strategy="afterInteractive">
+          {`
+            (function() {
+              var s = document.createElement('script');
+              s.defer = true;
+              s.src = '${umamiUrl}/script.js';
+              s.setAttribute('data-website-id', '${umamiWebsiteId}');
+              document.head.appendChild(s);
+            })();
+          `}
+        </Script>
       )}
     </>
   );
