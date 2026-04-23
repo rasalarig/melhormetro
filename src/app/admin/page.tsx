@@ -1,6 +1,6 @@
 import { AdminPropertyList } from "@/components/admin-property-list";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Megaphone, Settings, MessageCircle, Shield, ShieldAlert, Eye, Building2 } from "lucide-react";
+import { Plus, Users, Megaphone, Settings, MessageCircle, Shield, ShieldAlert, Eye, Building2, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { getAll, getOne } from "@/lib/db";
 
@@ -58,7 +58,7 @@ export default async function AdminPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-9 gap-2">
             <Link href="/admin/configuracoes">
               <Button variant="outline" size="sm" className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs px-2">
                 <Settings className="w-4 h-4 sm:mr-1.5 shrink-0" />
@@ -110,6 +110,12 @@ export default async function AdminPage() {
               <Button variant="outline" size="sm" className="w-full border-teal-500/30 text-teal-400 hover:bg-teal-500/10 text-xs px-2">
                 <Building2 className="w-4 h-4 sm:mr-1.5 shrink-0" />
                 <span className="hidden sm:inline">Condos</span>
+              </Button>
+            </Link>
+            <Link href="/admin/analytics">
+              <Button variant="outline" size="sm" className="w-full border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs px-2">
+                <BarChart3 className="w-4 h-4 sm:mr-1.5 shrink-0" />
+                <span className="hidden sm:inline">Analytics</span>
               </Button>
             </Link>
           </div>

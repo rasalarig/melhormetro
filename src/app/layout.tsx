@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { AuthProvider } from "@/components/auth-provider";
+import { Analytics } from "@/components/analytics";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -43,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${geistSans.variable} font-[family-name:var(--font-geist-sans)] antialiased min-h-screen flex flex-col`}>
+        <Analytics />
         <AuthProvider>
           <Navbar />
           <main className="flex-1">{children}</main>
