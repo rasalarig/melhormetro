@@ -316,6 +316,15 @@ export async function initDB() {
     -- read_at for alert_matches (replaces seen integer with proper timestamp)
     ALTER TABLE alert_matches ADD COLUMN IF NOT EXISTS read_at TIMESTAMP;
 
+    -- Fix properties type constraint to include condominium types
+    DO $$
+    BEGIN
+      ALTER TABLE properties DROP CONSTRAINT IF EXISTS properties_type_check;
+      ALTER TABLE properties ADD CONSTRAINT properties_type_check
+        CHECK(type IN ('terreno', 'casa', 'apartamento', 'comercial', 'rural', 'terreno_condominio', 'casa_condominio'));
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END $$;
+
     -- POI cache table
     CREATE TABLE IF NOT EXISTS property_pois_cache (
       property_id INTEGER PRIMARY KEY REFERENCES properties(id) ON DELETE CASCADE,
