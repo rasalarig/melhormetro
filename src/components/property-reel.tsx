@@ -296,10 +296,10 @@ export function PropertyReel({
         </Badge>
       </div>
 
-      {/* Tour title overlay (top-right, only when it's a named non-original tour) */}
+      {/* Tour title overlay (top center, only when it's a named non-original tour) */}
       {tourTitle && (
-        <div className="absolute top-4 right-4 z-20 max-w-[55%]">
-          <span className="inline-block bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full truncate">
+        <div className="absolute top-4 left-24 right-16 z-20 flex justify-center pointer-events-none">
+          <span className="block bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full truncate max-w-full">
             {tourTitle}
           </span>
         </div>
