@@ -205,10 +205,10 @@ function MetricTable({ items, label }: { items: MetricItem[]; label: string }) {
 }
 
 function PageviewsChart({ data, days }: { data: PageviewsData; days: number }) {
-  const pvData = data.pageviews ?? [];
-  const sessData = data.sessions ?? [];
+  const rawPv = data.pageviews ?? [];
+  const rawSess = data.sessions ?? [];
 
-  if (pvData.length === 0) {
+  if (rawPv.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
         Sem dados para o período
@@ -216,7 +216,56 @@ function PageviewsChart({ data, days }: { data: PageviewsData; days: number }) {
     );
   }
 
-  const maxY = Math.max(...pvData.map((p) => p.y), 1);
+  // Build a lookup from the sparse API data
+  const pvMap = new Map(rawPv.map((p) => [p.x, p.y]));
+  const sessMap = new Map(rawSess.map((s) => [s.x, s.y]));
+
+  // Fill in all time slots (hours for "Hoje", days otherwise)
+  const filled: { x: string; pv: number; sess: number }[] = [];
+  const now = new Date();
+  const isHourly = days <= 1;
+  const slots = isHourly ? 24 : days;
+
+  for (let i = slots - 1; i >= 0; i--) {
+    const d = new Date(now);
+    if (isHourly) {
+      d.setMinutes(0, 0, 0);
+      d.setHours(d.getHours() - i);
+    } else {
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+    }
+    // Match against API keys (try multiple formats)
+    const iso = d.toISOString().replace(/\.\d+Z$/, 'Z');
+    let pv = 0;
+    let sess = 0;
+    // Try exact match and also match by truncated hour/day
+    for (const [key, val] of pvMap) {
+      const kd = new Date(key);
+      if (isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate() && kd.getHours() === d.getHours()) {
+        pv = val;
+        break;
+      }
+      if (!isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate()) {
+        pv = val;
+        break;
+      }
+    }
+    for (const [key, val] of sessMap) {
+      const kd = new Date(key);
+      if (isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate() && kd.getHours() === d.getHours()) {
+        sess = val;
+        break;
+      }
+      if (!isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate()) {
+        sess = val;
+        break;
+      }
+    }
+    filled.push({ x: d.toISOString(), pv, sess });
+  }
+
+  const maxY = Math.max(...filled.map((p) => p.pv), 1);
 
   const formatDateLabel = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -229,10 +278,9 @@ function PageviewsChart({ data, days }: { data: PageviewsData; days: number }) {
     return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
   };
 
-  // Show at most ~30 bars; thin out if more
-  const step = Math.ceil(pvData.length / 30);
-  const visible = pvData.filter((_, i) => i % step === 0);
-  const visibleSess = sessData.filter((_, i) => i % step === 0);
+  // Thin out if too many bars
+  const step = Math.ceil(filled.length / 30);
+  const visible = filled.filter((_, i) => i % step === 0);
 
   return (
     <div>
@@ -248,27 +296,28 @@ function PageviewsChart({ data, days }: { data: PageviewsData; days: number }) {
         </span>
       </div>
       {/* Bars */}
-      <div className="flex items-end gap-0.5 h-40 w-full overflow-hidden">
-        {visible.map((pv, idx) => {
-          const pvH = Math.max((pv.y / maxY) * 100, pv.y > 0 ? 2 : 0);
-          const sv = visibleSess[idx]?.y ?? 0;
-          const svH = Math.max((sv / maxY) * 100, sv > 0 ? 2 : 0);
+      <div className="flex items-end gap-px h-40 w-full">
+        {visible.map((item, idx) => {
+          const pvH = Math.max((item.pv / maxY) * 100, item.pv > 0 ? 4 : 0);
+          const svH = Math.max((item.sess / maxY) * 100, item.sess > 0 ? 4 : 0);
           return (
             <div
-              key={pv.x}
-              className="flex-1 flex items-end gap-px justify-center group relative"
-              title={`${formatDateLabel(pv.x)}: ${fmt(pv.y)} views, ${fmt(sv)} visitantes`}
+              key={idx}
+              className="flex-1 flex items-end gap-px group"
+              title={`${formatDateLabel(item.x)}: ${fmt(item.pv)} views, ${fmt(item.sess)} visitantes`}
             >
-              {/* Pageviews bar */}
-              <div
-                className="flex-1 bg-emerald-500/70 rounded-t-sm transition-all group-hover:bg-emerald-400"
-                style={{ height: `${pvH}%` }}
-              />
-              {/* Sessions bar (overlaid, slightly narrower) */}
-              <div
-                className="w-1/2 bg-teal-500/50 rounded-t-sm transition-all absolute bottom-0 left-1/4 group-hover:bg-teal-400/60"
-                style={{ height: `${svH}%` }}
-              />
+              <div className="flex-1 flex items-end gap-0.5 justify-center">
+                {/* Pageviews bar */}
+                <div
+                  className="w-2/3 bg-emerald-500/70 rounded-t-sm transition-all group-hover:bg-emerald-400 min-w-[3px]"
+                  style={{ height: `${pvH}%` }}
+                />
+                {/* Sessions bar */}
+                <div
+                  className="w-1/3 bg-teal-500/50 rounded-t-sm transition-all group-hover:bg-teal-400/60 min-w-[2px]"
+                  style={{ height: `${svH}%` }}
+                />
+              </div>
             </div>
           );
         })}
