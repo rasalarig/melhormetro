@@ -621,11 +621,14 @@ export default function AdminAnalyticsPage() {
               </h2>
               {loading ? (
                 <div className="h-40 bg-muted/20 rounded animate-pulse" />
-              ) : pageviewsData ? (
+              ) : pageviewsData && (pageviewsData.pageviews?.length > 0 || pageviewsData.sessions?.length > 0) ? (
                 <PageviewsChart data={pageviewsData} days={days} />
               ) : (
-                <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-                  Sem dados disponíveis
+                <div className="flex flex-col items-center justify-center h-40 text-muted-foreground text-sm gap-2">
+                  <span>Sem dados disponíveis</span>
+                  <span className="text-[10px] opacity-50">
+                    Debug: {JSON.stringify(pageviewsData).slice(0, 200)}
+                  </span>
                 </div>
               )}
             </Card>
