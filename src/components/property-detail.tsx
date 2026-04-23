@@ -122,6 +122,11 @@ interface PropertyProps {
     condominium_id?: number | null;
     condominium_name?: string | null;
     condominium_slug?: string | null;
+    listing_as?: string | null;
+    is_exclusive?: boolean | null;
+    exclusivity_months?: number | null;
+    lister_creci?: string | null;
+    lister_trade_name?: string | null;
     images: PropertyImage[];
     /** Combined media list from tour_media (preferred) or property_images (fallback) */
     mediaItems?: MediaItem[];
@@ -593,6 +598,47 @@ export function PropertyDetail({ property }: PropertyProps) {
                   Publicado em {formatDate(property.created_at)}
                 </div>
               </Card>
+
+              {/* Anunciante section */}
+              {property.listing_as && (
+                <Card className="p-4 bg-card border-border/50 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Anunciante</p>
+                  {property.listing_as === "proprietario" && (
+                    <div className="space-y-1.5">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 text-xs font-medium border border-blue-500/20">
+                        Anunciado pelo proprietário
+                      </span>
+                      {property.is_exclusive && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-medium border border-emerald-500/20">
+                            Exclusividade MelhorMetro{property.exclusivity_months ? ` — ${property.exclusivity_months} meses` : ""}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {property.listing_as === "autonomo" && (
+                    <div className="space-y-1.5">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-400 text-xs font-medium border border-violet-500/20">
+                        Anunciado por corretor autônomo
+                      </span>
+                      {property.lister_creci && (
+                        <p className="text-xs text-muted-foreground">CRECI: {property.lister_creci}</p>
+                      )}
+                    </div>
+                  )}
+                  {property.listing_as === "imobiliaria" && (
+                    <div className="space-y-1.5">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 text-xs font-medium border border-amber-500/20">
+                        {property.lister_trade_name ? `Anunciado por ${property.lister_trade_name}` : "Anunciado por imobiliária"}
+                      </span>
+                      {property.lister_creci && (
+                        <p className="text-xs text-muted-foreground">CRECI: {property.lister_creci}</p>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              )}
 
               {/* Condominium link */}
               {property.condominium_id && property.condominium_slug && (

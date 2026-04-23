@@ -32,6 +32,11 @@ interface Property {
   condominium_id?: number | null;
   condominium_name?: string | null;
   condominium_slug?: string | null;
+  listing_as?: string | null;
+  is_exclusive?: boolean | null;
+  exclusivity_months?: number | null;
+  lister_creci?: string | null;
+  lister_trade_name?: string | null;
 }
 
 interface PropertyImage {
@@ -51,10 +56,14 @@ interface TourMediaRow {
 async function getProperty(id: string) {
   const property = await getOne(
     `SELECT p.*, s.user_id as seller_user_id,
-            c.name as condominium_name, c.slug as condominium_slug
+            c.name as condominium_name, c.slug as condominium_slug,
+            up.creci as lister_creci, up.trade_name as lister_trade_name
      FROM properties p
      LEFT JOIN sellers s ON p.seller_id = s.id
      LEFT JOIN condominiums c ON p.condominium_id = c.id
+     LEFT JOIN user_profiles up ON up.user_id = s.user_id
+       AND up.profile_type = p.listing_as
+       AND up.is_active = TRUE
      WHERE p.id = $1`,
     [Number(id)]
   ) as Property | null;

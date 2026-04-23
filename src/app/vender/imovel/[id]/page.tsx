@@ -136,6 +136,12 @@ export default function EditarImovelPage() {
   const [resaleCommissionPercent, setResaleCommissionPercent] = useState("");
   const [resaleTerms, setResaleTerms] = useState("");
 
+  // Listing profile
+  const [listingAs, setListingAs] = useState<"proprietario" | "autonomo" | "imobiliaria" | "">("");
+  const [isExclusive, setIsExclusive] = useState(false);
+  const [exclusivityMonths, setExclusivityMonths] = useState("6");
+  const [platformCommissionRate] = useState("5");
+
   // Address privacy
   const [addressPrivacy, setAddressPrivacy] = useState<"exact" | "approximate">("exact");
   const [approximateRadiusKm, setApproximateRadiusKm] = useState(1.0);
@@ -210,6 +216,11 @@ export default function EditarImovelPage() {
         if (data.address_privacy) setAddressPrivacy(data.address_privacy);
         if (data.approximate_radius_km != null) setApproximateRadiusKm(data.approximate_radius_km);
         if (data.facade_orientation) setFacadeOrientation(data.facade_orientation);
+
+        // Listing profile fields
+        if (data.listing_as) setListingAs(data.listing_as as "proprietario" | "autonomo" | "imobiliaria");
+        if (data.is_exclusive) setIsExclusive(true);
+        if (data.exclusivity_months != null) setExclusivityMonths(String(data.exclusivity_months));
 
         // Images - load existing into unified media list
         const images: PropertyImage[] = data.images || [];
@@ -488,6 +499,10 @@ export default function EditarImovelPage() {
           resale_terms: allowResale && resaleTerms.trim() ? resaleTerms.trim() : null,
           facade_orientation: facadeOrientation || null,
           condominium_id: isCondoType ? condominiumId : null,
+          listing_as: listingAs || null,
+          is_exclusive: listingAs === "proprietario" ? isExclusive : false,
+          exclusivity_months: listingAs === "proprietario" && isExclusive ? Number(exclusivityMonths) : null,
+          listing_commission_rate: listingAs === "proprietario" ? Number(platformCommissionRate) : null,
         }),
       });
 
@@ -586,6 +601,200 @@ export default function EditarImovelPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Section: Como você está anunciando? */}
+          {(() => {
+            const profiles = user?.profiles || [];
+            const hasProprietario = profiles.some((p) => p.profile_type === "proprietario");
+            const hasAutonomo = profiles.some((p) => p.profile_type === "autonomo");
+            const hasImobiliaria = profiles.some((p) => p.profile_type === "imobiliaria");
+            const hasAnySeller = hasProprietario || hasAutonomo || hasImobiliaria;
+            const autonomoProfile = profiles.find((p) => p.profile_type === "autonomo");
+            const imobiliariaProfile = profiles.find((p) => p.profile_type === "imobiliaria");
+
+            const inputClass = "w-full rounded-lg border border-border/50 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors";
+            const labelClass = "block text-sm font-medium text-foreground mb-1.5";
+
+            return (
+              <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+                <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">
+                  Como você está anunciando?
+                </h2>
+
+                {!hasAnySeller ? (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                    <p className="text-sm text-amber-400">
+                      Você precisa configurar seu perfil antes de cadastrar um imóvel.{" "}
+                      <a href="/perfil" className="underline font-medium hover:text-amber-300 transition-colors">
+                        Configure em /perfil
+                      </a>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {hasProprietario && (
+                      <button
+                        type="button"
+                        onClick={() => setListingAs("proprietario")}
+                        className={`flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                          listingAs === "proprietario"
+                            ? "border-emerald-500 bg-emerald-500/10"
+                            : "border-border/40 bg-background/50 hover:border-emerald-500/40"
+                        }`}
+                      >
+                        <span className="text-sm font-semibold text-foreground">Proprietário</span>
+                        <span className="text-xs text-muted-foreground">Sou o dono do imóvel</span>
+                      </button>
+                    )}
+                    {hasAutonomo && (
+                      <button
+                        type="button"
+                        onClick={() => setListingAs("autonomo")}
+                        className={`flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                          listingAs === "autonomo"
+                            ? "border-emerald-500 bg-emerald-500/10"
+                            : "border-border/40 bg-background/50 hover:border-emerald-500/40"
+                        }`}
+                      >
+                        <span className="text-sm font-semibold text-foreground">Autônomo</span>
+                        <span className="text-xs text-muted-foreground">Sou corretor autônomo</span>
+                      </button>
+                    )}
+                    {hasImobiliaria && (
+                      <button
+                        type="button"
+                        onClick={() => setListingAs("imobiliaria")}
+                        className={`flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                          listingAs === "imobiliaria"
+                            ? "border-emerald-500 bg-emerald-500/10"
+                            : "border-border/40 bg-background/50 hover:border-emerald-500/40"
+                        }`}
+                      >
+                        <span className="text-sm font-semibold text-foreground">Imobiliária</span>
+                        <span className="text-xs text-muted-foreground">Represento uma imobiliária</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Proprietário: exclusivity + commission info */}
+                {listingAs === "proprietario" && (
+                  <div className="space-y-3 pt-1">
+                    <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-xs text-blue-300 leading-relaxed">
+                      Ao listar como proprietário, o anúncio é gratuito. A plataforma cobra uma comissão sobre a venda.
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          Este imóvel é de exclusividade do MelhorMetro?
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Exclusividade garante foco total da plataforma neste anúncio
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsExclusive(!isExclusive)}
+                        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                          isExclusive ? "bg-emerald-500" : "bg-border/60"
+                        }`}
+                        aria-checked={isExclusive}
+                        role="switch"
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                            isExclusive ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {isExclusive && (
+                      <div>
+                        <label className={labelClass}>
+                          Prazo de exclusividade (meses) <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          value={exclusivityMonths}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            setExclusivityMonths(v < 1 ? "1" : v > 24 ? "24" : e.target.value);
+                          }}
+                          min="1"
+                          max="24"
+                          className={inputClass}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Entre 1 e 24 meses.</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className={labelClass}>Comissão da plataforma (%)</label>
+                      <input
+                        type="text"
+                        value={platformCommissionRate}
+                        readOnly
+                        className={`${inputClass} opacity-60 cursor-not-allowed`}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Autônomo: info banner + CRECI */}
+                {listingAs === "autonomo" && (
+                  <div className="space-y-3 pt-1">
+                    <div className="rounded-lg border border-teal-500/20 bg-teal-500/5 px-4 py-3 text-xs text-teal-300 leading-relaxed">
+                      Anúncios de corretores autônomos terão uma taxa por anúncio. Em breve lançaremos planos com preços acessíveis. Por enquanto, seus anúncios são gratuitos durante o período de lançamento.
+                    </div>
+                    {autonomoProfile?.creci && (
+                      <div>
+                        <label className={labelClass}>CRECI</label>
+                        <input
+                          type="text"
+                          value={autonomoProfile.creci}
+                          readOnly
+                          className={`${inputClass} opacity-60 cursor-not-allowed`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Imobiliária: info banner + trade name + CRECI */}
+                {listingAs === "imobiliaria" && (
+                  <div className="space-y-3 pt-1">
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-300 leading-relaxed">
+                      Imobiliárias pagarão uma mensalidade por faixa de quantidade de imóveis. Em breve teremos planos disponíveis. Por enquanto, seus anúncios são gratuitos durante o período de lançamento.
+                    </div>
+                    {imobiliariaProfile?.trade_name && (
+                      <div>
+                        <label className={labelClass}>Nome da imobiliária</label>
+                        <input
+                          type="text"
+                          value={imobiliariaProfile.trade_name}
+                          readOnly
+                          className={`${inputClass} opacity-60 cursor-not-allowed`}
+                        />
+                      </div>
+                    )}
+                    {imobiliariaProfile?.creci && (
+                      <div>
+                        <label className={labelClass}>CRECI</label>
+                        <input
+                          type="text"
+                          value={imobiliariaProfile.creci}
+                          readOnly
+                          className={`${inputClass} opacity-60 cursor-not-allowed`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Section: Informações Básicas */}
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
             <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">

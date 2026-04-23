@@ -82,7 +82,20 @@ export async function POST(request: NextRequest) {
       resale_terms,
       facade_orientation,
       condominium_id,
+      listing_as,
+      is_exclusive = false,
+      exclusivity_months,
+      listing_commission_rate,
     } = body;
+
+    // Validate listing_as
+    const validListingTypes = ['proprietario', 'autonomo', 'imobiliaria'];
+    if (listing_as && !validListingTypes.includes(listing_as)) {
+      return NextResponse.json(
+        { error: 'Tipo de anunciante inválido' },
+        { status: 400 }
+      );
+    }
 
     if (!title || !description || !price || !area || !type || !address || !city) {
       return NextResponse.json(
@@ -93,8 +106,8 @@ export async function POST(request: NextRequest) {
 
     // Auto-set seller_id from authenticated user
     const property = await getOne(
-      `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, seller_id, media_status, address_privacy, approximate_radius_km, allow_resale, resale_commission_percent, resale_terms, facade_orientation, condominium_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      `INSERT INTO properties (title, description, price, area, type, address, city, state, neighborhood, characteristics, details, seller_id, media_status, address_privacy, approximate_radius_km, allow_resale, resale_commission_percent, resale_terms, facade_orientation, condominium_id, listing_as, is_exclusive, exclusivity_months, listing_commission_rate)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
        RETURNING *`,
       [
         title,
@@ -117,6 +130,10 @@ export async function POST(request: NextRequest) {
         resale_terms || null,
         facade_orientation || null,
         condominium_id != null ? condominium_id : null,
+        listing_as || null,
+        is_exclusive || false,
+        listing_as === 'proprietario' && is_exclusive && exclusivity_months ? Number(exclusivity_months) : null,
+        listing_as === 'proprietario' && listing_commission_rate != null ? Number(listing_commission_rate) : null,
       ]
     );
 

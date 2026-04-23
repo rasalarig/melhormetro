@@ -360,6 +360,12 @@ export async function initDB() {
     WHERE NOT EXISTS (
       SELECT 1 FROM tour_media tm WHERE tm.tour_id = pt.id AND tm.media_url = pi.filename
     );
+
+    -- Feature 3201: Perfil obrigatório antes de cadastrar imóvel
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS listing_as VARCHAR(20) CHECK(listing_as IN ('proprietario', 'autonomo', 'imobiliaria'));
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_exclusive BOOLEAN DEFAULT FALSE;
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS exclusivity_months INTEGER;
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS listing_commission_rate DECIMAL(5,2);
   `);
 }
 

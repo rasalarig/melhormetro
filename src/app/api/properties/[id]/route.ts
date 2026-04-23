@@ -140,7 +140,20 @@ export async function PUT(
       resale_terms,
       facade_orientation,
       condominium_id,
+      listing_as,
+      is_exclusive,
+      exclusivity_months,
+      listing_commission_rate,
     } = body;
+
+    // Validate listing_as
+    const validListingTypes = ['proprietario', 'autonomo', 'imobiliaria'];
+    if (listing_as && !validListingTypes.includes(listing_as)) {
+      return NextResponse.json(
+        { error: 'Tipo de anunciante inválido' },
+        { status: 400 }
+      );
+    }
 
     await query(
       `UPDATE properties SET
@@ -166,6 +179,10 @@ export async function PUT(
         resale_terms = COALESCE($20, resale_terms),
         facade_orientation = COALESCE($21, facade_orientation),
         condominium_id = CASE WHEN $22::integer IS NOT NULL THEN $22::integer ELSE condominium_id END,
+        listing_as = COALESCE($24, listing_as),
+        is_exclusive = COALESCE($25, is_exclusive),
+        exclusivity_months = COALESCE($26, exclusivity_months),
+        listing_commission_rate = COALESCE($27, listing_commission_rate),
         updated_at = NOW()
       WHERE id = $23`,
       [
@@ -192,6 +209,10 @@ export async function PUT(
         facade_orientation !== undefined ? (facade_orientation || null) : null,
         condominium_id !== undefined ? condominium_id : null,
         params.id,
+        listing_as !== undefined ? (listing_as || null) : null,
+        is_exclusive !== undefined ? is_exclusive : null,
+        exclusivity_months !== undefined ? (exclusivity_months ? Number(exclusivity_months) : null) : null,
+        listing_commission_rate !== undefined ? (listing_commission_rate != null ? Number(listing_commission_rate) : null) : null,
       ]
     );
 
