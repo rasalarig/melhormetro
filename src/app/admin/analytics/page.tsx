@@ -25,17 +25,19 @@ import Link from "next/link";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface StatValue {
-  value: number;
-  change: number;
-}
-
 interface StatsData {
-  pageviews: StatValue;
-  visitors: StatValue;
-  visits: StatValue;
-  bounces: StatValue;
-  totaltime: StatValue;
+  pageviews: number;
+  visitors: number;
+  visits: number;
+  bounces: number;
+  totaltime: number;
+  comparison: {
+    pageviews: number;
+    visitors: number;
+    visits: number;
+    bounces: number;
+    totaltime: number;
+  };
 }
 
 interface TimePoint {
@@ -448,8 +450,9 @@ export default function AdminAnalyticsPage() {
   if (!user?.is_admin) return null;
 
   const days = PERIODS[period].days;
-  const sv = (field: keyof StatsData) => stats?.[field]?.value ?? 0;
-  const sc = (field: keyof StatsData) => stats?.[field]?.change ?? 0;
+  type StatField = "pageviews" | "visitors" | "visits" | "bounces" | "totaltime";
+  const sv = (field: StatField) => (typeof stats?.[field] === "number" ? stats[field] : 0) as number;
+  const sc = (field: StatField) => (typeof stats?.comparison?.[field] === "number" ? stats.comparison[field] : 0) as number;
   const bounceRate = sv("visits") > 0 ? (sv("bounces") / sv("visits")) * 100 : 0;
   const bounceRateChange = sc("bounces") - sc("visits");
   const avgTime = sv("visits") > 0 ? sv("totaltime") / sv("visits") : 0;
