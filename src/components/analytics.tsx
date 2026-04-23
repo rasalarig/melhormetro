@@ -1,46 +1,31 @@
 'use client';
 
-import Script from 'next/script';
+import { useEffect } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 
-export function Analytics() {
-  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
-  const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL;
+export function RouteTracker() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  return (
-    <>
-      {/* Google Analytics 4 */}
-      {gaId && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-            strategy="afterInteractive"
-          />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${gaId}');
-            `}
-          </Script>
-        </>
-      )}
+  useEffect(() => {
+    const url = pathname + (searchParams?.toString() ? `?${searchParams}` : '');
 
-      {/* Umami Analytics — injected via inline script to guarantee data-website-id */}
-      {umamiWebsiteId && umamiUrl && (
-        <Script id="umami-analytics" strategy="afterInteractive">
-          {`
-            (function() {
-              var s = document.createElement('script');
-              s.defer = true;
-              s.src = '${umamiUrl}/script.js';
-              s.setAttribute('data-website-id', '${umamiWebsiteId}');
-              document.head.appendChild(s);
-            })();
-          `}
-        </Script>
-      )}
-    </>
-  );
+    // Umami: track SPA route changes
+    if (typeof window !== 'undefined' && (window as any).umami) {
+      (window as any).umami.track(props => ({
+        ...props,
+        url,
+        referrer: document.referrer,
+      }));
+    }
+
+    // GA4: track SPA route changes
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('config', process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID, {
+        page_path: url,
+      });
+    }
+  }, [pathname, searchParams]);
+
+  return null;
 }
