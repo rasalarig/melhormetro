@@ -20,7 +20,9 @@ import Link from "next/link";
 
 const PROPERTY_TYPES = [
   { value: "terreno", label: "Terreno" },
+  { value: "terreno_condominio", label: "Terreno em Condomínio" },
   { value: "casa", label: "Casa" },
+  { value: "casa_condominio", label: "Casa em Condomínio" },
   { value: "apartamento", label: "Apartamento" },
   { value: "comercial", label: "Comercial" },
   { value: "rural", label: "Rural" },
@@ -120,6 +122,27 @@ export default function EditarImovelPage() {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
 
+  // Condominium
+  const [condominiumId, setCondominiumId] = useState<number | null>(null);
+  const [condominiums, setCondominiums] = useState<{ id: number; name: string }[]>([]);
+
+  // IBGE state/city
+  const [ibgeStates, setIbgeStates] = useState<{ sigla: string; nome: string }[]>([]);
+  const [ibgeCities, setIbgeCities] = useState<{ id: number; nome: string }[]>([]);
+  const ibgeCitiesCache = useRef<Record<string, { id: number; nome: string }[]>>({});
+
+  // Resale
+  const [allowResale, setAllowResale] = useState(false);
+  const [resaleCommissionPercent, setResaleCommissionPercent] = useState("");
+  const [resaleTerms, setResaleTerms] = useState("");
+
+  // Address privacy
+  const [addressPrivacy, setAddressPrivacy] = useState<"exact" | "approximate">("exact");
+  const [approximateRadiusKm, setApproximateRadiusKm] = useState(1.0);
+
+  // Facade orientation
+  const [facadeOrientation, setFacadeOrientation] = useState("");
+
   // UI state
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
@@ -179,6 +202,15 @@ export default function EditarImovelPage() {
         const chars = data.characteristics || [];
         setSelectedChars(Array.isArray(chars) ? chars : []);
 
+        // Extra fields
+        if (data.condominium_id) setCondominiumId(data.condominium_id);
+        if (data.allow_resale) setAllowResale(true);
+        if (data.resale_commission_percent != null) setResaleCommissionPercent(String(data.resale_commission_percent));
+        if (data.resale_terms) setResaleTerms(data.resale_terms);
+        if (data.address_privacy) setAddressPrivacy(data.address_privacy);
+        if (data.approximate_radius_km != null) setApproximateRadiusKm(data.approximate_radius_km);
+        if (data.facade_orientation) setFacadeOrientation(data.facade_orientation);
+
         // Images - load existing into unified media list
         const images: PropertyImage[] = data.images || [];
         if (images.length > 0) {
@@ -209,8 +241,36 @@ export default function EditarImovelPage() {
     };
   }, []);
 
+  // Fetch IBGE states on mount
+  useEffect(() => {
+    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome")
+      .then((r) => r.json())
+      .then((d) => setIbgeStates(d))
+      .catch(() => {});
+  }, []);
+
+  // Fetch IBGE cities when state changes
+  useEffect(() => {
+    if (!state || state.length !== 2) { setIbgeCities([]); return; }
+    if (ibgeCitiesCache.current[state]) { setIbgeCities(ibgeCitiesCache.current[state]); return; }
+    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${state}/municipios?orderBy=nome`)
+      .then((r) => r.json())
+      .then((d) => { ibgeCitiesCache.current[state] = d; setIbgeCities(d); })
+      .catch(() => {});
+  }, [state]);
+
+  // Fetch condominiums for linking
+  useEffect(() => {
+    if (!isCondoType) return;
+    fetch("/api/condominiums")
+      .then((r) => r.json())
+      .then((d) => setCondominiums(d.condominiums || []))
+      .catch(() => {});
+  }, [isCondoType]);
+
   const showDetails =
-    propertyType === "casa" || propertyType === "apartamento";
+    propertyType === "casa" || propertyType === "apartamento" || propertyType === "casa_condominio";
+  const isCondoType = propertyType === "casa_condominio" || propertyType === "terreno_condominio";
 
   function toggleCharacteristic(char: string) {
     setSelectedChars((prev) =>
@@ -325,40 +385,29 @@ export default function EditarImovelPage() {
     const filesToUpload = mediaItems.filter((e) => e.file);
     if (filesToUpload.length === 0) return [];
 
-    setUploadProgress("Enviando arquivos...");
-
-    const formData = new FormData();
-    for (const entry of filesToUpload) {
-      formData.append("files", entry.file!);
-    }
-
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Falha no upload dos arquivos");
-    }
-
-    const data = await res.json();
-    const uploadedFiles = data.files as {
-      url: string;
-      originalName: string;
-      type: string;
-    }[];
-
-    // Map uploaded URLs back with is_cover info
     const results: { url: string; is_cover: boolean }[] = [];
-    let uploadIndex = 0;
-    for (const entry of mediaItems) {
-      if (entry.file) {
-        results.push({
-          url: uploadedFiles[uploadIndex].url,
-          is_cover: entry.is_cover,
-        });
-        uploadIndex++;
+
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const entry = filesToUpload[i];
+      setUploadProgress(`Enviando arquivo ${i + 1} de ${filesToUpload.length}...`);
+
+      const formData = new FormData();
+      formData.append("files", entry.file!);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Falha no upload do arquivo ${i + 1}`);
+      }
+
+      const data = await res.json();
+      const uploaded = data.files?.[0];
+      if (uploaded) {
+        results.push({ url: uploaded.url, is_cover: entry.is_cover });
       }
     }
 
@@ -432,6 +481,13 @@ export default function EditarImovelPage() {
           characteristics: selectedChars.length > 0 ? selectedChars : null,
           details: Object.keys(details).length > 0 ? details : null,
           imageUrls: allImageUrls,
+          address_privacy: addressPrivacy,
+          approximate_radius_km: addressPrivacy === "approximate" ? approximateRadiusKm : 1.0,
+          allow_resale: allowResale,
+          resale_commission_percent: allowResale && resaleCommissionPercent ? Math.min(100, Math.max(0, Number(resaleCommissionPercent))) : null,
+          resale_terms: allowResale && resaleTerms.trim() ? resaleTerms.trim() : null,
+          facade_orientation: facadeOrientation || null,
+          condominium_id: isCondoType ? condominiumId : null,
         }),
       });
 
@@ -631,26 +687,33 @@ export default function EditarImovelPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>
-                  Cidade <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Ex: São Paulo"
+                <label className={labelClass}>Estado <span className="text-red-400">*</span></label>
+                <select
+                  value={state}
+                  onChange={(e) => { setState(e.target.value); setCity(""); }}
                   className={inputClass}
-                />
+                >
+                  <option value="">Selecione</option>
+                  {ibgeStates.map((s) => (
+                    <option key={s.sigla} value={s.sigla}>{s.sigla} - {s.nome}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className={labelClass}>Estado</label>
+                <label className={labelClass}>Cidade <span className="text-red-400">*</span></label>
                 <input
-                  type="text"
-                  value={state}
-                  onChange={(e) => setState(e.target.value)}
-                  placeholder="SP"
+                  list="ibge-cities-edit"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder={state ? "Digite a cidade..." : "Selecione o estado primeiro"}
+                  disabled={!state}
                   className={inputClass}
                 />
+                <datalist id="ibge-cities-edit">
+                  {ibgeCities.map((c) => (
+                    <option key={c.id} value={c.nome} />
+                  ))}
+                </datalist>
               </div>
             </div>
 
@@ -771,6 +834,70 @@ export default function EditarImovelPage() {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Condominium selector */}
+          {isCondoType && (
+            <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+              <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">Condomínio</h2>
+              <select value={condominiumId || ""} onChange={(e) => setCondominiumId(e.target.value ? Number(e.target.value) : null)} className={inputClass}>
+                <option value="">Selecione o condomínio (opcional)</option>
+                {condominiums.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
+          )}
+
+          {/* Orientação Solar */}
+          <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+            <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">Orientação Solar</h2>
+            <select value={facadeOrientation} onChange={(e) => setFacadeOrientation(e.target.value)} className={inputClass}>
+              <option value="">Selecione (opcional)</option>
+              <option value="norte">Norte</option>
+              <option value="sul">Sul</option>
+              <option value="leste">Leste</option>
+              <option value="oeste">Oeste</option>
+              <option value="nordeste">Nordeste</option>
+              <option value="noroeste">Noroeste</option>
+              <option value="sudeste">Sudeste</option>
+              <option value="sudoeste">Sudoeste</option>
+            </select>
+          </div>
+
+          {/* Privacidade do Endereço */}
+          <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+            <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">Exibição do Endereço</h2>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setAddressPrivacy("exact")} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${addressPrivacy === "exact" ? "bg-emerald-500 text-white" : "bg-secondary/50 text-muted-foreground"}`}>Endereço exato</button>
+              <button type="button" onClick={() => setAddressPrivacy("approximate")} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${addressPrivacy === "approximate" ? "bg-emerald-500 text-white" : "bg-secondary/50 text-muted-foreground"}`}>Localização aproximada</button>
+            </div>
+            {addressPrivacy === "approximate" && (
+              <div>
+                <label className={labelClass}>Raio aproximado: {approximateRadiusKm}km</label>
+                <input type="range" min="0.5" max="5" step="0.5" value={approximateRadiusKm} onChange={(e) => setApproximateRadiusKm(Number(e.target.value))} className="w-full" />
+              </div>
+            )}
+          </div>
+
+          {/* Recomercialização */}
+          <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+            <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">Recomercialização</h2>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={allowResale} onChange={(e) => setAllowResale(e.target.checked)} className="sr-only peer" />
+              <div className="w-10 h-6 bg-secondary/50 peer-checked:bg-emerald-500 rounded-full relative transition-colors"><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${allowResale ? "translate-x-5" : "translate-x-1"}`} /></div>
+              <span className="text-sm">Permitir que autônomos comercializem este imóvel</span>
+            </label>
+            {allowResale && (
+              <div className="space-y-3">
+                <div>
+                  <label className={labelClass}>Comissão oferecida ao autônomo (%)</label>
+                  <input type="number" value={resaleCommissionPercent} onChange={(e) => { const v = parseFloat(e.target.value); if (e.target.value === "" || isNaN(v)) { setResaleCommissionPercent(e.target.value); return; } setResaleCommissionPercent(v > 100 ? "100" : v < 0 ? "0" : e.target.value); }} placeholder="Ex: 3.0" min="0" max="100" step="0.5" className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Condições (opcional)</label>
+                  <textarea value={resaleTerms} onChange={(e) => setResaleTerms(e.target.value)} placeholder="Ex: Comissão paga após escritura..." rows={2} className={inputClass} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section: Fotos e Vídeos */}
