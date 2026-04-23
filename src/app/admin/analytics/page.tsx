@@ -208,7 +208,15 @@ function PageviewsChart({ data, days }: { data: PageviewsData; days: number }) {
   const rawPv = data.pageviews ?? [];
   const rawSess = data.sessions ?? [];
 
-  if (rawPv.length === 0) {
+  // Use API data directly — no time-slot filling needed
+  // Just combine pageviews and sessions by index
+  const combined = rawPv.map((pv, i) => ({
+    x: pv.x,
+    pv: pv.y,
+    sess: rawSess[i]?.y ?? 0,
+  }));
+
+  if (combined.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
         Sem dados para o período
@@ -216,56 +224,7 @@ function PageviewsChart({ data, days }: { data: PageviewsData; days: number }) {
     );
   }
 
-  // Build a lookup from the sparse API data
-  const pvMap = new Map(rawPv.map((p) => [p.x, p.y]));
-  const sessMap = new Map(rawSess.map((s) => [s.x, s.y]));
-
-  // Fill in all time slots (hours for "Hoje", days otherwise)
-  const filled: { x: string; pv: number; sess: number }[] = [];
-  const now = new Date();
-  const isHourly = days <= 1;
-  const slots = isHourly ? 24 : days;
-
-  for (let i = slots - 1; i >= 0; i--) {
-    const d = new Date(now);
-    if (isHourly) {
-      d.setMinutes(0, 0, 0);
-      d.setHours(d.getHours() - i);
-    } else {
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - i);
-    }
-    // Match against API keys (try multiple formats)
-    const iso = d.toISOString().replace(/\.\d+Z$/, 'Z');
-    let pv = 0;
-    let sess = 0;
-    // Try exact match and also match by truncated hour/day
-    for (const [key, val] of pvMap) {
-      const kd = new Date(key);
-      if (isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate() && kd.getHours() === d.getHours()) {
-        pv = val;
-        break;
-      }
-      if (!isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate()) {
-        pv = val;
-        break;
-      }
-    }
-    for (const [key, val] of sessMap) {
-      const kd = new Date(key);
-      if (isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate() && kd.getHours() === d.getHours()) {
-        sess = val;
-        break;
-      }
-      if (!isHourly && kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate()) {
-        sess = val;
-        break;
-      }
-    }
-    filled.push({ x: d.toISOString(), pv, sess });
-  }
-
-  const maxY = Math.max(...filled.map((p) => p.pv), 1);
+  const maxY = Math.max(...combined.map((p) => p.pv), 1);
 
   const formatDateLabel = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -278,57 +237,54 @@ function PageviewsChart({ data, days }: { data: PageviewsData; days: number }) {
     return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
   };
 
-  // Thin out if too many bars
-  const step = Math.ceil(filled.length / 30);
-  const visible = filled.filter((_, i) => i % step === 0);
-
   return (
     <div>
       {/* Legend */}
       <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-emerald-500/70 inline-block" />
+          <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />
           Visualizações
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-teal-500/50 inline-block" />
+          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" />
           Visitantes
         </span>
       </div>
       {/* Bars */}
-      <div className="flex items-end gap-px h-40 w-full">
-        {visible.map((item, idx) => {
-          const pvH = Math.max((item.pv / maxY) * 100, item.pv > 0 ? 4 : 0);
-          const svH = Math.max((item.sess / maxY) * 100, item.sess > 0 ? 4 : 0);
+      <div className="flex items-end gap-1 h-44 w-full">
+        {combined.map((item, idx) => {
+          const pvH = (item.pv / maxY) * 100;
+          const svH = (item.sess / maxY) * 100;
           return (
             <div
               key={idx}
-              className="flex-1 flex items-end gap-px group"
+              className="flex-1 flex flex-col items-center group"
               title={`${formatDateLabel(item.x)}: ${fmt(item.pv)} views, ${fmt(item.sess)} visitantes`}
             >
-              <div className="flex-1 flex items-end gap-0.5 justify-center">
+              {/* Value on top */}
+              <div className="text-[9px] text-muted-foreground mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {item.pv}
+              </div>
+              {/* Bars container */}
+              <div className="w-full flex items-end gap-0.5 flex-1">
                 {/* Pageviews bar */}
                 <div
-                  className="w-2/3 bg-emerald-500/70 rounded-t-sm transition-all group-hover:bg-emerald-400 min-w-[3px]"
-                  style={{ height: `${pvH}%` }}
+                  className="flex-1 bg-emerald-500 rounded-t transition-all group-hover:bg-emerald-400"
+                  style={{ height: `${Math.max(pvH, 3)}%` }}
                 />
                 {/* Sessions bar */}
                 <div
-                  className="w-1/3 bg-teal-500/50 rounded-t-sm transition-all group-hover:bg-teal-400/60 min-w-[2px]"
-                  style={{ height: `${svH}%` }}
+                  className="flex-1 bg-teal-400 rounded-t transition-all group-hover:bg-teal-300"
+                  style={{ height: `${Math.max(svH, 3)}%` }}
                 />
+              </div>
+              {/* Label */}
+              <div className="text-[9px] text-muted-foreground mt-1 truncate w-full text-center">
+                {formatDateLabel(item.x)}
               </div>
             </div>
           );
         })}
-      </div>
-      {/* X-axis labels */}
-      <div className="flex justify-between mt-1 text-[10px] text-muted-foreground overflow-hidden">
-        <span>{formatDateLabel(visible[0]?.x)}</span>
-        {visible.length > 2 && (
-          <span>{formatDateLabel(visible[Math.floor(visible.length / 2)]?.x)}</span>
-        )}
-        <span>{formatDateLabel(visible[visible.length - 1]?.x)}</span>
       </div>
     </div>
   );
