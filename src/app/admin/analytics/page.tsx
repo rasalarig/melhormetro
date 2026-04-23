@@ -64,15 +64,17 @@ const PERIODS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmt(n: number) {
+function fmt(n: number | undefined | null) {
+  if (n == null || isNaN(n)) return "0";
   return n.toLocaleString("pt-BR");
 }
 
-function fmtPct(n: number) {
+function fmtPct(n: number | undefined | null) {
+  if (n == null || isNaN(n)) return "0.0%";
   return `${n.toFixed(1)}%`;
 }
 
-function fmtTime(seconds: number) {
+function fmtTime(seconds: number | undefined | null) {
   if (!seconds || isNaN(seconds)) return "0s";
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
@@ -80,7 +82,8 @@ function fmtTime(seconds: number) {
   return `${m}m ${s}s`;
 }
 
-function changeLabel(change: number) {
+function changeLabel(change: number | undefined | null) {
+  if (change == null || isNaN(change)) return "+0";
   const sign = change > 0 ? "+" : "";
   return `${sign}${fmt(change)}`;
 }
@@ -445,17 +448,11 @@ export default function AdminAnalyticsPage() {
   if (!user?.is_admin) return null;
 
   const days = PERIODS[period].days;
-  const bounceRate =
-    stats && stats.visits.value > 0
-      ? (stats.bounces.value / stats.visits.value) * 100
-      : 0;
-  const bounceRateChange = stats
-    ? stats.bounces.change - stats.visits.change
-    : 0;
-  const avgTime =
-    stats && stats.visits.value > 0
-      ? stats.totaltime.value / stats.visits.value
-      : 0;
+  const sv = (field: keyof StatsData) => stats?.[field]?.value ?? 0;
+  const sc = (field: keyof StatsData) => stats?.[field]?.change ?? 0;
+  const bounceRate = sv("visits") > 0 ? (sv("bounces") / sv("visits")) * 100 : 0;
+  const bounceRateChange = sc("bounces") - sc("visits");
+  const avgTime = sv("visits") > 0 ? sv("totaltime") / sv("visits") : 0;
 
   return (
     <div className="pt-16 pb-16 px-4">
@@ -569,22 +566,22 @@ export default function AdminAnalyticsPage() {
                 <>
                   <KpiCard
                     label="Visitantes"
-                    value={fmt(stats.visitors.value)}
-                    change={stats.visitors.change}
+                    value={fmt(sv("visitors"))}
+                    change={sc("visitors")}
                     icon={Users}
                     color="emerald"
                   />
                   <KpiCard
                     label="Visualizações"
-                    value={fmt(stats.pageviews.value)}
-                    change={stats.pageviews.change}
+                    value={fmt(sv("pageviews"))}
+                    change={sc("pageviews")}
                     icon={Eye}
                     color="teal"
                   />
                   <KpiCard
                     label="Visitas"
-                    value={fmt(stats.visits.value)}
-                    change={stats.visits.change}
+                    value={fmt(sv("visits"))}
+                    change={sc("visits")}
                     icon={MousePointerClick}
                     color="cyan"
                   />
