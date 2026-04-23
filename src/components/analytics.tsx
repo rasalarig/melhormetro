@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
-export function RouteTracker() {
+function RouteTrackerInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -12,7 +12,7 @@ export function RouteTracker() {
 
     // Umami: track SPA route changes
     if (typeof window !== 'undefined' && (window as any).umami) {
-      (window as any).umami.track(props => ({
+      (window as any).umami.track((props: any) => ({
         ...props,
         url,
         referrer: document.referrer,
@@ -28,4 +28,12 @@ export function RouteTracker() {
   }, [pathname, searchParams]);
 
   return null;
+}
+
+export function RouteTracker() {
+  return (
+    <Suspense fallback={null}>
+      <RouteTrackerInner />
+    </Suspense>
+  );
 }
