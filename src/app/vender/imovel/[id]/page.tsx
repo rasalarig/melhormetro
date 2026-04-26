@@ -1087,7 +1087,8 @@ export default function EditarImovelPage() {
             )}
           </div>
 
-          {/* Recomercialização */}
+          {/* Recomercialização — only for autonomo/imobiliaria */}
+          {listingAs && listingAs !== "proprietario" && (
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
             <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">Recomercialização</h2>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -1108,6 +1109,7 @@ export default function EditarImovelPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Section: Fotos e Vídeos */}
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">

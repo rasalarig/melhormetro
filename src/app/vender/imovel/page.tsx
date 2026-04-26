@@ -1382,7 +1382,8 @@ export default function CadastrarImovelPage() {
             </div>
           </div>
 
-          {/* Section: Recomercialização */}
+          {/* Section: Recomercialização — only for autonomo/imobiliaria */}
+          {listingAs && listingAs !== "proprietario" && (
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
             <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">
               Recomercialização
@@ -1452,6 +1453,7 @@ export default function CadastrarImovelPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Section: Orientação Solar */}
           <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
