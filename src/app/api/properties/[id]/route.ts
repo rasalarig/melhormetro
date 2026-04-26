@@ -313,8 +313,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ownership = await verifyOwnership(params.id);
-    if (ownership.error) return ownership.error;
+    // Admin can delete any property
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    }
+    if (!user.is_admin) {
+      const ownership = await verifyOwnership(params.id);
+      if (ownership.error) return ownership.error;
+    }
 
     // Fetch filenames before deleting
     const images = await getAll(
