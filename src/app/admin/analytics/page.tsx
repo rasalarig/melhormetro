@@ -134,11 +134,11 @@ function KpiCard({
         </span>
       </div>
       <div className="mt-3">
-        <div className="text-2xl font-bold tracking-tight">
+        <div className="text-4xl font-extrabold tracking-tight text-white drop-shadow-sm">
           {value}
-          {suffix && <span className="text-base font-normal text-muted-foreground ml-1">{suffix}</span>}
+          {suffix && <span className="text-lg font-normal text-muted-foreground ml-1">{suffix}</span>}
         </div>
-        <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
+        <div className="text-sm text-muted-foreground mt-1 font-medium">{label}</div>
       </div>
     </Card>
   );
