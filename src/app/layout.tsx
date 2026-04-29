@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { AuthProvider } from "@/components/auth-provider";
 import { RouteTracker } from "@/components/analytics";
+import { CookieConsent } from "@/components/cookie-consent";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -43,17 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <head>
-        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
-          <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`} />
-            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');` }} />
-          </>
-        )}
-        {process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && process.env.NEXT_PUBLIC_UMAMI_URL && (
-          <script defer src={`${process.env.NEXT_PUBLIC_UMAMI_URL}/script.js`} data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID} />
-        )}
-      </head>
+      <head />
       <body className={`${geistSans.variable} font-[family-name:var(--font-geist-sans)] antialiased min-h-screen flex flex-col`}>
         <AuthProvider>
           <RouteTracker />
@@ -61,6 +52,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
           <BottomTabBar />
+          <CookieConsent />
         </AuthProvider>
       </body>
     </html>

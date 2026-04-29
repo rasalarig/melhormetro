@@ -17,6 +17,7 @@ export default function PremiumLoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -42,6 +43,11 @@ export default function PremiumLoginPage() {
     }
     if (mode === "register" && !name.trim()) {
       setError("Digite seu nome");
+      return;
+    }
+
+    if (mode === "register" && !acceptedTerms) {
+      setError("Você deve aceitar a Política de Privacidade e os Termos de Uso");
       return;
     }
 
@@ -172,6 +178,23 @@ export default function PremiumLoginPage() {
             </div>
           )}
 
+          {mode === "register" && (
+            <label className="flex items-start gap-2 text-xs text-amber-100/50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 rounded border-amber-500/30"
+              />
+              <span>
+                Li e aceito a{" "}
+                <a href="/privacidade" target="_blank" className="text-amber-400 underline">Política de Privacidade</a>
+                {" "}e os{" "}
+                <a href="/termos" target="_blank" className="text-amber-400 underline">Termos de Uso</a>
+              </span>
+            </label>
+          )}
+
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <Button
@@ -197,14 +220,14 @@ export default function PremiumLoginPage() {
           {mode === "login" ? (
             <p className="text-sm text-amber-100/40">
               Não tem conta?{" "}
-              <button onClick={() => { setMode("register"); setError(""); setConfirmPassword(""); }} className="text-amber-400 hover:text-amber-300 font-medium">
+              <button onClick={() => { setMode("register"); setError(""); setConfirmPassword(""); setAcceptedTerms(false); }} className="text-amber-400 hover:text-amber-300 font-medium">
                 Cadastre-se
               </button>
             </p>
           ) : (
             <p className="text-sm text-amber-100/40">
               Já tem conta?{" "}
-              <button onClick={() => { setMode("login"); setError(""); setConfirmPassword(""); }} className="text-amber-400 hover:text-amber-300 font-medium">
+              <button onClick={() => { setMode("login"); setError(""); setConfirmPassword(""); setAcceptedTerms(false); }} className="text-amber-400 hover:text-amber-300 font-medium">
                 Entrar
               </button>
             </p>

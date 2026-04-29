@@ -19,6 +19,7 @@ export function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -47,6 +48,11 @@ export function LoginPage() {
 
     if (mode === "register" && !name.trim()) {
       setError("Digite seu nome");
+      return;
+    }
+
+    if (mode === "register" && !acceptedTerms) {
+      setError("Você deve aceitar a Política de Privacidade e os Termos de Uso");
       return;
     }
 
@@ -195,6 +201,23 @@ export function LoginPage() {
               </div>
             )}
 
+            {mode === "register" && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 rounded border-border"
+                />
+                <span>
+                  Li e aceito a{" "}
+                  <a href="/privacidade" target="_blank" className="text-emerald-400 underline">Política de Privacidade</a>
+                  {" "}e os{" "}
+                  <a href="/termos" target="_blank" className="text-emerald-400 underline">Termos de Uso</a>
+                </span>
+              </label>
+            )}
+
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
@@ -225,7 +248,7 @@ export function LoginPage() {
                 Não tem conta?{" "}
                 <button
                   type="button"
-                  onClick={() => { setMode("register"); setError(""); setConfirmPassword(""); }}
+                  onClick={() => { setMode("register"); setError(""); setConfirmPassword(""); setAcceptedTerms(false); }}
                   className="text-emerald-400 hover:text-emerald-300 font-medium"
                 >
                   Cadastre-se
@@ -236,7 +259,7 @@ export function LoginPage() {
                 Já tem conta?{" "}
                 <button
                   type="button"
-                  onClick={() => { setMode("login"); setError(""); setConfirmPassword(""); }}
+                  onClick={() => { setMode("login"); setError(""); setConfirmPassword(""); setAcceptedTerms(false); }}
                   className="text-emerald-400 hover:text-emerald-300 font-medium"
                 >
                   Entrar

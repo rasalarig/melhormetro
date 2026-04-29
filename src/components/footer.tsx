@@ -32,9 +32,16 @@ export function Footer() {
             </Link>
             <Link href="/admin" className="hover:text-foreground transition-colors">Admin</Link>
           </div>
-          <p className="text-xs text-muted-foreground">
-            &copy; 2026 MelhorMetro. Powered by AI.
-          </p>
+          <div className="flex flex-col items-center md:items-end gap-1">
+            <p className="text-xs text-muted-foreground">
+              &copy; 2026 MelhorMetro. Powered by AI.
+            </p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <Link href="/privacidade" className="hover:text-foreground transition-colors">Política de Privacidade</Link>
+              <span className="text-border">|</span>
+              <Link href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

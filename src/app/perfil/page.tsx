@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Home, Briefcase, Building2, CheckCircle, PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { User, Home, Briefcase, Building2, CheckCircle, PlusCircle, Trash2, Loader2, Shield, Download } from "lucide-react";
 
 interface UserProfile {
   profile_type: string;
@@ -56,6 +56,12 @@ export default function PerfilPage() {
   const [removingType, setRemovingType] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const [exportingData, setExportingData] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -156,6 +162,48 @@ export default function PerfilPage() {
       await fetchProfiles();
     } finally {
       setRemovingType(null);
+    }
+  };
+
+  const handleExportData = async () => {
+    setExportingData(true);
+    try {
+      const res = await fetch("/api/auth/export-data");
+      if (!res.ok) throw new Error("Falha ao exportar dados");
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `meus-dados-melhormetro-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setExportingData(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    setDeleteError("");
+    try {
+      const res = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmEmail: deleteConfirmEmail }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.error || "Erro ao excluir conta");
+        return;
+      }
+      window.location.href = "/";
+    } catch (err) {
+      setDeleteError("Erro de conexão");
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -392,6 +440,84 @@ export default function PerfilPage() {
             })}
           </div>
         )}
+
+        {/* LGPD — Seus Dados */}
+        <Card className="border-red-500/20 mt-4">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Shield className="w-5 h-5 text-red-400" />
+              Seus Dados (LGPD)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Conforme a Lei Geral de Proteção de Dados (LGPD), você tem direito de acessar, exportar e solicitar a exclusão dos seus dados pessoais.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportData}
+                disabled={exportingData}
+                className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+              >
+                {exportingData ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+                Exportar meus dados
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir minha conta
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Para mais informações, consulte nossa{" "}
+              <a href="/privacidade" className="text-emerald-400 underline">Política de Privacidade</a>.
+            </p>
+
+            {/* Delete confirmation modal */}
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <Card className="w-full max-w-md p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-red-400">Excluir conta permanentemente</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente, incluindo imóveis, mensagens, favoritos e histórico.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Para confirmar, digite seu email: <strong>{user?.email}</strong>
+                  </p>
+                  <Input
+                    value={deleteConfirmEmail}
+                    onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                    placeholder="Seu email"
+                    className="bg-secondary/50"
+                  />
+                  {deleteError && <p className="text-sm text-red-400">{deleteError}</p>}
+                  <div className="flex gap-3 justify-end">
+                    <Button variant="ghost" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmEmail(""); setDeleteError(""); }}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount || deleteConfirmEmail !== user?.email}
+                    >
+                      {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Excluir permanentemente
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
