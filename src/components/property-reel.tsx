@@ -246,7 +246,7 @@ export function PropertyReel({
                   style={{ opacity: index === currentImageIndex ? 1 : 0 }}
                   loop
                   playsInline
-                  preload="metadata"
+                  preload={index === currentImageIndex ? "auto" : "metadata"}
                   autoPlay={index === currentImageIndex}
                 />
               );
