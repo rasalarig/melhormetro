@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function ReelsPage() {
   return (
-    <div className="bg-black">
+    <div className="bg-gradient-to-br from-zinc-800 to-zinc-900">
       <ReelsFeed />
     </div>
   );

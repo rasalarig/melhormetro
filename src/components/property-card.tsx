@@ -64,7 +64,7 @@ export function PropertyCard({ id, title, price, area, city, state, type, charac
   return (
     <Link href={`/imoveis/${id}`}>
       <Card className="group overflow-hidden border-border/50 bg-card hover:border-emerald-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
-        <div className="relative h-48 bg-gradient-to-br from-emerald-900/40 to-teal-900/40 overflow-hidden">
+        <div className="relative h-48 bg-gradient-to-br from-zinc-800 to-zinc-900 overflow-hidden">
           {image && isVideoUrl(resolveMediaUrl(image)) ? (
             <div className="relative w-full h-full">
               <video
@@ -81,8 +81,18 @@ export function PropertyCard({ id, title, price, area, city, state, type, charac
               </div>
             </div>
           ) : image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={resolveMediaUrl(image)} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <div className="relative w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resolveMediaUrl(image)}
+                alt={title}
+                loading="lazy"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                style={{ opacity: 0 }}
+                onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = "1"; (e.target as HTMLImageElement).style.transition = "opacity 0.3s ease-in"; }}
+              />
+            </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center opacity-20">
               <Maximize className="w-16 h-16" />

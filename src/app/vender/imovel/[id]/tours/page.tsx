@@ -138,12 +138,18 @@ function TourThumbnail({ media }: { media: TourMedia[] }) {
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={url}
-      alt="Tour thumbnail"
-      className="w-full h-full object-cover"
-    />
+    <div className="relative w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse pointer-events-none" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt="Tour thumbnail"
+        className="w-full h-full object-cover transition-opacity duration-300"
+        style={{ opacity: 0 }}
+        loading="lazy"
+        onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = "1"; }}
+      />
+    </div>
   );
 }
 

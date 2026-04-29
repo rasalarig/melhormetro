@@ -60,6 +60,7 @@ function NativeVideoSlide({ url, isActive, isFullscreen }: NativeVideoSlideProps
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Autoplay / pause based on active state and IntersectionObserver
@@ -162,10 +163,14 @@ function NativeVideoSlide({ url, isActive, isFullscreen }: NativeVideoSlideProps
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-black"
+      className="relative w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900"
       onMouseMove={resetHideTimer}
       onTouchStart={resetHideTimer}
     >
+      {/* Shimmer skeleton while video loads */}
+      {!videoLoaded && (
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse pointer-events-none" />
+      )}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoRef}
@@ -174,9 +179,9 @@ function NativeVideoSlide({ url, isActive, isFullscreen }: NativeVideoSlideProps
         loop
         playsInline
         muted={muted}
-        preload="auto"
+        preload="metadata"
         onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
+        onLoadedMetadata={() => { handleLoadedMetadata(); setVideoLoaded(true); }}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onClick={togglePlay}
@@ -408,8 +413,8 @@ export function PropertyMediaGallery({
   const isImage = !isNativeVideo && !isExternal;
 
   const galleryClasses = fullscreen
-    ? "fixed inset-0 z-50 bg-black flex flex-col"
-    : "relative rounded-2xl overflow-hidden bg-black";
+    ? "fixed inset-0 z-50 bg-gradient-to-br from-zinc-900 to-zinc-950 flex flex-col"
+    : "relative rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900";
 
   return (
     <div
@@ -448,18 +453,24 @@ export function PropertyMediaGallery({
               )}
               {ext && <IframeSlide url={m.url} isActive={isAct} />}
               {img && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={m.url}
-                  alt={m.alt || `${propertyTitle} - imagem ${idx + 1}`}
-                  className={`absolute inset-0 w-full h-full object-cover ${
-                    fullscreen ? "object-contain" : "object-cover"
-                  } ${onImageClick ? "cursor-zoom-in" : ""}`}
-                  onClick={() => {
-                    if (onImageClick && isAct && img) onImageClick(m.url);
-                  }}
-                  loading={idx === 0 ? "eager" : "lazy"}
-                />
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900">
+                  {/* Shimmer skeleton while image loads */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse pointer-events-none" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={m.url}
+                    alt={m.alt || `${propertyTitle} - imagem ${idx + 1}`}
+                    className={`absolute inset-0 w-full h-full ${
+                      fullscreen ? "object-contain" : "object-cover"
+                    } ${onImageClick ? "cursor-zoom-in" : ""} transition-opacity duration-300`}
+                    style={{ opacity: 0 }}
+                    onClick={() => {
+                      if (onImageClick && isAct && img) onImageClick(m.url);
+                    }}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = "1"; }}
+                  />
+                </div>
               )}
             </div>
           );
@@ -530,7 +541,7 @@ export function PropertyMediaGallery({
         <div
           ref={thumbnailsRef}
           className={`flex gap-2 overflow-x-auto scrollbar-hide px-2 py-2 ${
-            fullscreen ? "bg-black/80" : "bg-black/90 rounded-b-2xl"
+            fullscreen ? "bg-zinc-900/80" : "bg-zinc-900/90 rounded-b-2xl"
           }`}
           style={{ scrollbarWidth: "none" }}
         >

@@ -183,7 +183,7 @@ export function PropertyReel({
   return (
     <div
       ref={reelRef}
-      className="reel-item group relative w-full h-full overflow-hidden bg-black"
+      className="reel-item group relative w-full h-full overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -191,8 +191,10 @@ export function PropertyReel({
       {/* Background Images with Crossfade */}
       {imageUrls.length > 0 ? (
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900"
         >
+          {/* Shimmer skeleton shown while media loads */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse pointer-events-none" />
           {imageUrls.map((url, index) => {
             if (isExternalVideoUrl(url)) {
               const embedUrl = getEmbedUrl(url);
@@ -244,7 +246,7 @@ export function PropertyReel({
                   style={{ opacity: index === currentImageIndex ? 1 : 0 }}
                   loop
                   playsInline
-                  preload="auto"
+                  preload="metadata"
                   autoPlay={index === currentImageIndex}
                 />
               );
@@ -256,8 +258,12 @@ export function PropertyReel({
                 src={url}
                 alt={`${title} - imagem ${index + 1}`}
                 className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
-                style={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                style={{ opacity: 0 }}
                 loading="lazy"
+                onLoad={(e) => {
+                  const el = e.target as HTMLImageElement;
+                  el.style.opacity = index === currentImageIndex ? "1" : "0";
+                }}
               />
             );
           })}

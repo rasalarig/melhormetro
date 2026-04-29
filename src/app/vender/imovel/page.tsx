@@ -1149,8 +1149,9 @@ export default function CadastrarImovelPage() {
                   type="number"
                   value={area}
                   onChange={(e) => setArea(e.target.value)}
-                  placeholder="150"
+                  placeholder="150.50"
                   min="0"
+                  step="0.01"
                   className={inputClass}
                 />
               </div>
