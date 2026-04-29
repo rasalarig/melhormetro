@@ -105,6 +105,22 @@ export function PropertyReel({
     }
   }, [imageUrls.length]);
 
+  // Prefetch adjacent images for instant swipe
+  useEffect(() => {
+    const prefetchIndexes = [currentImageIndex + 1, currentImageIndex - 1];
+    for (const idx of prefetchIndexes) {
+      const normalizedIdx = idx < 0 ? imageUrls.length - 1 : idx >= imageUrls.length ? 0 : idx;
+      const url = imageUrls[normalizedIdx];
+      if (url && !isVideoUrl(url) && !isExternalVideoUrl(url)) {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'image';
+        link.href = url;
+        document.head.appendChild(link);
+      }
+    }
+  }, [currentImageIndex, imageUrls]);
+
   // Video play/pause when navigating slides
   useEffect(() => {
     videoRefs.current.forEach((video, index) => {
@@ -241,11 +257,12 @@ export function PropertyReel({
                 <video
                   key={url}
                   ref={(el) => { videoRefs.current[index] = el; }}
-                  src={url}
-                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+                  src={`${url}${index !== currentImageIndex ? '#t=0.1' : ''}`}
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out"
                   style={{ opacity: index === currentImageIndex ? 1 : 0 }}
                   loop
                   playsInline
+                  muted
                   preload={index === currentImageIndex ? "auto" : "metadata"}
                   autoPlay={index === currentImageIndex}
                 />
@@ -257,9 +274,10 @@ export function PropertyReel({
                 key={url}
                 src={url}
                 alt={`${title} - imagem ${index + 1}`}
-                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
-                style={{ opacity: 0 }}
-                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out"
+                style={{ opacity: index === currentImageIndex ? 1 : 0 }}
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : undefined}
                 onLoad={(e) => {
                   const el = e.target as HTMLImageElement;
                   el.style.opacity = index === currentImageIndex ? "1" : "0";

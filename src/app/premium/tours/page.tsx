@@ -87,8 +87,8 @@ export default function PremiumReelsPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-40">
-      <div className="h-full bg-black flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 z-40">
+      <div className="h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center overflow-hidden">
         <div className="relative w-full h-full md:h-full md:aspect-[9/16] md:max-w-[calc(100dvh*9/16)] md:rounded-3xl md:border md:border-amber-500/20 md:shadow-2xl md:overflow-hidden">
           <div
             className="reels-container scrollbar-hide overflow-y-scroll h-full w-full"

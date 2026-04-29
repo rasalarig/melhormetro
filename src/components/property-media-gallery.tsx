@@ -342,6 +342,22 @@ export function PropertyMediaGallery({
     }
   }, [current]);
 
+  // Prefetch adjacent images for instant navigation
+  useEffect(() => {
+    const prefetchIndexes = [current + 1, current - 1];
+    for (const idx of prefetchIndexes) {
+      const normalizedIdx = idx < 0 ? total - 1 : idx >= total ? 0 : idx;
+      const m = media[normalizedIdx];
+      if (m && m.type === "image") {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'image';
+        link.href = m.url;
+        document.head.appendChild(link);
+      }
+    }
+  }, [current, media, total]);
+
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
@@ -468,6 +484,7 @@ export function PropertyMediaGallery({
                       if (onImageClick && isAct && img) onImageClick(m.url);
                     }}
                     loading={idx === 0 ? "eager" : "lazy"}
+                    fetchPriority={idx === 0 ? "high" : undefined}
                     onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = "1"; }}
                   />
                 </div>
