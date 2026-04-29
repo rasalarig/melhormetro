@@ -194,14 +194,14 @@ function FactorRow({
   else if (pct < 80) barColor = "bg-yellow-500";
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-medium text-foreground">{name}</span>
-        <span className="text-muted-foreground">
+    <div className="space-y-1 min-w-0">
+      <div className="flex items-center justify-between text-xs gap-2">
+        <span className="font-medium text-foreground truncate">{name}</span>
+        <span className="text-muted-foreground shrink-0">
           {score}/{maxScore}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+      <div className="h-2 rounded-full bg-white/10 overflow-hidden w-full">
         <div
           className={`h-full rounded-full transition-all duration-500 ${barColor}`}
           style={{ width: `${pct}%` }}
@@ -318,10 +318,12 @@ export function ValuationScore({ result, compact = false }: ValuationScoreProps)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-hidden">
       {/* Gauge + classification */}
-      <div className="flex flex-col items-center gap-2">
-        <Gauge score={result.score} colorHex={colors.hex} />
+      <div className="flex flex-col items-center gap-2 px-4">
+        <div className="w-full max-w-[200px] sm:max-w-[220px]">
+          <Gauge score={result.score} colorHex={colors.hex} />
+        </div>
         <div className="text-center">
           <span
             className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}
@@ -335,7 +337,7 @@ export function ValuationScore({ result, compact = false }: ValuationScoreProps)
       </div>
 
       {/* Factor breakdown */}
-      <div className="space-y-4">
+      <div className="space-y-4 px-1">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Composição do Score
         </h3>
