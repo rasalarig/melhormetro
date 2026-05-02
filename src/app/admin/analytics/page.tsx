@@ -20,6 +20,9 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
+  Home,
+  Briefcase,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -94,6 +97,15 @@ function shortPath(path: string) {
   if (!path) return "(direto)";
   if (path.length > 40) return path.slice(0, 37) + "…";
   return path;
+}
+
+function timeAgo(date: string) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return "agora";
+  if (seconds < 3600) return `há ${Math.floor(seconds / 60)}min`;
+  if (seconds < 86400) return `há ${Math.floor(seconds / 3600)}h`;
+  if (seconds < 2592000) return `há ${Math.floor(seconds / 86400)}d`;
+  return new Date(date).toLocaleDateString("pt-BR");
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -311,6 +323,7 @@ export default function AdminAnalyticsPage() {
   const [notConfigured, setNotConfigured] = useState(false);
 
   const [stats, setStats] = useState<StatsData | null>(null);
+  const [usersData, setUsersData] = useState<any>(null);
   const [activeVisitors, setActiveVisitors] = useState<number | null>(null);
   const [pageviewsData, setPageviewsData] = useState<PageviewsData | null>(null);
   const [pages, setPages] = useState<MetricItem[]>([]);
@@ -370,6 +383,11 @@ export default function AdminAnalyticsPage() {
         const body = await statsRes.json();
         setNotConfigured(true);
         setError(body.error ?? "Analytics não configurado.");
+        // Still fetch user data — it works independently of Umami
+        const usersRes = await fetch("/api/admin/analytics?type=users");
+        if (usersRes.ok) {
+          setUsersData(await usersRes.json());
+        }
         setLoading(false);
         return;
       }
@@ -408,6 +426,12 @@ export default function AdminAnalyticsPage() {
       setDevices(Array.isArray(devicesData) ? devicesData : []);
       setBrowsers(Array.isArray(browsersData) ? browsersData : []);
       setOs(Array.isArray(osData) ? osData : []);
+
+      // Fetch user data from database (always works, doesn't need Umami)
+      const usersRes = await fetch("/api/admin/analytics?type=users");
+      if (usersRes.ok) {
+        setUsersData(await usersRes.json());
+      }
     } catch (err) {
       console.error("Analytics fetch error:", err);
       setError("Erro de conexão ao carregar analytics.");
@@ -766,6 +790,165 @@ export default function AdminAnalyticsPage() {
                 )}
               </Card>
             </div>
+          </>
+        )}
+
+        {/* Visitantes Cadastrados — from database, always available */}
+        {usersData && (
+          <>
+            <h2 className="text-lg font-bold mt-8 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-emerald-400" />
+              Visitantes Cadastrados
+            </h2>
+
+            {/* KPI row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <Card className="p-4 bg-card border-border/50">
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Total cadastrados</div>
+                <div className="text-4xl font-extrabold tracking-tight text-white">{fmt(usersData.totalUsers)}</div>
+              </Card>
+              <Card className="p-4 bg-card border-border/50">
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Novos hoje</div>
+                <div className="text-4xl font-extrabold tracking-tight text-emerald-400">{fmt(usersData.newToday)}</div>
+              </Card>
+              <Card className="p-4 bg-card border-border/50">
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Últimos 7 dias</div>
+                <div className="text-4xl font-extrabold tracking-tight text-teal-400">{fmt(usersData.newThisWeek)}</div>
+              </Card>
+              <Card className="p-4 bg-card border-border/50">
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Últimos 30 dias</div>
+                <div className="text-4xl font-extrabold tracking-tight text-cyan-400">{fmt(usersData.newThisMonth)}</div>
+              </Card>
+            </div>
+
+            {/* 3-column: Profile breakdown, Provider breakdown, Most Active */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              {/* Profile breakdown */}
+              <Card className="p-4 bg-card border-border/50">
+                <h2 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  Por Perfil
+                </h2>
+                <div className="space-y-2">
+                  {(() => {
+                    const profileConfig: Record<string, { color: string; Icon: React.ElementType }> = {
+                      comprador: { color: "emerald", Icon: Users },
+                      proprietario: { color: "blue", Icon: Home },
+                      autonomo: { color: "violet", Icon: Briefcase },
+                      imobiliaria: { color: "amber", Icon: Building2 },
+                    };
+                    const maxCount = Math.max(...(usersData.byProfile ?? []).map((p: { type: string; count: number }) => p.count), 1);
+                    return (usersData.byProfile ?? []).map((p: { type: string; count: number }) => {
+                      const cfg = profileConfig[p.type] ?? { color: "slate", Icon: Users };
+                      const pct = Math.max((p.count / maxCount) * 100, 2);
+                      return (
+                        <div key={p.type} className="flex items-center gap-2 text-sm">
+                          <cfg.Icon className={`w-3.5 h-3.5 text-${cfg.color}-400 shrink-0`} />
+                          <span className="text-muted-foreground text-xs w-24 shrink-0 capitalize">{p.type}</span>
+                          <div className="flex-1 h-5 bg-muted/20 rounded overflow-hidden">
+                            <div className={`h-full bg-${cfg.color}-500/70 rounded transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs text-muted-foreground w-8 text-right shrink-0">{fmt(p.count)}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </Card>
+
+              {/* Auth provider breakdown */}
+              <Card className="p-4 bg-card border-border/50">
+                <h2 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5" />
+                  Por Autenticação
+                </h2>
+                <div className="space-y-2">
+                  {(() => {
+                    const maxCount = Math.max(...(usersData.byProvider ?? []).map((p: { provider: string; count: number }) => p.count), 1);
+                    return (usersData.byProvider ?? []).map((p: { provider: string; count: number }) => {
+                      const isGoogle = p.provider === "google";
+                      const color = isGoogle ? "blue" : "emerald";
+                      const label = isGoogle ? "Google" : "E-mail";
+                      const pct = Math.max((p.count / maxCount) * 100, 2);
+                      return (
+                        <div key={p.provider} className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground text-xs w-16 shrink-0">{label}</span>
+                          <div className="flex-1 h-5 bg-muted/20 rounded overflow-hidden">
+                            <div className={`h-full bg-${color}-500/70 rounded transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs text-muted-foreground w-8 text-right shrink-0">{fmt(p.count)}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </Card>
+
+              {/* Most active users */}
+              <Card className="p-4 bg-card border-border/50">
+                <h2 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  Mais Ativos (30d)
+                </h2>
+                {(usersData.mostActive ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Sem dados de engajamento</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {(usersData.mostActive ?? []).map((u: { id: number; name: string; email: string; score: number; event_count: number }, idx: number) => (
+                      <div key={u.id} className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground w-4 shrink-0 font-mono">{idx + 1}.</span>
+                        <span className="flex-1 truncate text-foreground/80" title={u.email}>{u.name || u.email}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold text-[10px] shrink-0">
+                          {fmt(u.score)}pts
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {/* Recent registrations table */}
+            <Card className="p-4 bg-card border-border/50 mb-6">
+              <h2 className="text-xs font-semibold mb-4 text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                Últimos Cadastros
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/30">
+                      <th className="text-left pb-2 text-muted-foreground font-medium">Nome</th>
+                      <th className="text-left pb-2 text-muted-foreground font-medium">E-mail</th>
+                      <th className="text-left pb-2 text-muted-foreground font-medium">Login</th>
+                      <th className="text-left pb-2 text-muted-foreground font-medium">Perfis</th>
+                      <th className="text-right pb-2 text-muted-foreground font-medium">Cadastro</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/20">
+                    {(usersData.recentUsers ?? []).map((u: { id: number; name: string; email: string; provider: string; is_premium: boolean; created_at: string; profiles: string[] }) => (
+                      <tr key={u.id} className="hover:bg-muted/10 transition-colors">
+                        <td className="py-2 pr-3 font-medium text-foreground/90 truncate max-w-[120px]">{u.name}</td>
+                        <td className="py-2 pr-3 text-muted-foreground truncate max-w-[160px]">{u.email}</td>
+                        <td className="py-2 pr-3">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${u.provider === "google" ? "bg-blue-500/15 text-blue-400" : "bg-emerald-500/15 text-emerald-400"}`}>
+                            {u.provider === "google" ? "Google" : "E-mail"}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-3">
+                          <div className="flex flex-wrap gap-1">
+                            {(u.profiles ?? []).map((p: string) => (
+                              <span key={p} className="px-1 py-0.5 rounded bg-muted/30 text-[10px] text-muted-foreground capitalize">{p}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-2 text-right text-muted-foreground whitespace-nowrap">{timeAgo(u.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </>
         )}
       </div>
