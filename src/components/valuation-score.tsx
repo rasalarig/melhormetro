@@ -338,9 +338,14 @@ export function ValuationScore({ result, compact = false }: ValuationScoreProps)
 
       {/* Factor breakdown */}
       <div className="space-y-4 px-1">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Composição do Score
-        </h3>
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Composição do Score
+          </h3>
+          <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">
+            Este índice avalia a completude e atratividade do seu anúncio. Quanto mais informações e mídia, maior a nota.
+          </p>
+        </div>
         {result.factors.map((f) => (
           <FactorRow key={f.name} {...f} />
         ))}

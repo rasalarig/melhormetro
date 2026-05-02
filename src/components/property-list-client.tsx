@@ -61,7 +61,7 @@ export function PropertyListClient({ properties }: PropertyListClientProps) {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Imóveis Disponíveis</h1>
           <p className="text-muted-foreground mt-1">
@@ -119,7 +119,7 @@ export function PropertyListClient({ properties }: PropertyListClientProps) {
         </div>
       ) : (
         <div className={viewMode === "grid"
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           : "flex flex-col gap-4"
         }>
           {sortedProperties.map((property) => (

@@ -22,14 +22,6 @@ import dynamic from "next/dynamic";
 
 const MapPicker = dynamic(() => import("./map-picker"), { ssr: false });
 
-interface Condominium {
-  id: number;
-  name: string;
-  slug: string;
-  city: string | null;
-  state: string | null;
-}
-
 interface PropertyFormProps {
   initialData?: {
     id: number;
@@ -52,7 +44,7 @@ interface PropertyFormProps {
     resale_commission_percent?: number | null;
     resale_terms?: string | null;
     facade_orientation?: string | null;
-    condominium_id?: number | null;
+    condominium_name?: string | null;
   };
 }
 
@@ -158,20 +150,10 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
       .catch(console.error);
   }, [state]);
 
-  // Condominium
-  const [condominiumId, setCondominiumId] = useState<number | null>(
-    initialData?.condominium_id ?? null
+  // Condominium (free text)
+  const [condominiumName, setCondominiumName] = useState<string>(
+    initialData?.condominium_name ?? ""
   );
-  const [condominiums, setCondominiums] = useState<Condominium[]>([]);
-
-  useEffect(() => {
-    if (type === "casa_condominio" || type === "terreno_condominio") {
-      fetch("/api/condominiums")
-        .then((r) => r.json())
-        .then((data) => setCondominiums(data.condominiums || []))
-        .catch(console.error);
-    }
-  }, [type]);
 
   // Images
   const [images, setImages] = useState<File[]>([]);
@@ -332,7 +314,7 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
         resale_commission_percent: allowResale && resaleCommissionPercent ? parseFloat(resaleCommissionPercent) : null,
         resale_terms: allowResale && resaleTerms.trim() ? resaleTerms.trim() : null,
         facade_orientation: facadeOrientation || null,
-        condominium_id: (type === "casa_condominio" || type === "terreno_condominio") ? condominiumId : null,
+        condominium_name: (type === "casa_condominio" || type === "terreno_condominio") && condominiumName.trim() ? condominiumName.trim() : null,
       };
 
       const url = isEditing
@@ -530,32 +512,19 @@ export function PropertyForm({ initialData }: PropertyFormProps) {
           </div>
         </div>
 
-        {/* Condominium selector */}
+        {/* Condominium name (free text) */}
         {(type === "casa_condominio" || type === "terreno_condominio") && (
           <div>
             <label className="text-sm text-muted-foreground mb-1 block">
-              Condomínio
+              Nome do condomínio (opcional)
             </label>
-            <select
-              value={condominiumId ?? ""}
-              onChange={(e) => setCondominiumId(e.target.value ? Number(e.target.value) : null)}
+            <input
+              type="text"
+              value={condominiumName}
+              onChange={(e) => setCondominiumName(e.target.value)}
+              placeholder="Ex: Residencial das Flores"
               className="w-full h-10 bg-secondary/50 border border-border/50 rounded-lg px-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500"
-            >
-              <option value="">— Selecionar condomínio —</option>
-              {condominiums.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}{c.city ? ` — ${c.city}` : ""}
-                </option>
-              ))}
-            </select>
-            {condominiums.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Nenhum condomínio cadastrado. O admin pode criar em{" "}
-                <a href="/admin/condominios" className="text-emerald-400 hover:underline" target="_blank" rel="noreferrer">
-                  Painel Admin → Condomínios
-                </a>.
-              </p>
-            )}
+            />
           </div>
         )}
       </Card>

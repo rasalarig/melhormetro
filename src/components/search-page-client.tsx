@@ -288,32 +288,28 @@ export function SearchPageClient() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="pt-16 pb-24 px-4">
+    <div className="pt-20 pb-16 px-4">
       <div className="container mx-auto max-w-5xl">
         {/* Back link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar ao inicio
         </Link>
 
         {/* ── Lifestyle Hero Search ─────────────────────────────────────── */}
-        <div className="max-w-3xl mx-auto mb-10">
+        <div className="max-w-3xl mx-auto mb-5">
           {/* Header */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              Busca por estilo de vida com IA
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
+          <div className="text-center mb-3">
+            <h1 className="text-xl md:text-2xl font-bold mb-1">
               Encontre o imovel{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
                 ideal para voce
               </span>
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Descreva o que voce deseja em linguagem natural e a IA encontra para voce
             </p>
           </div>
@@ -358,24 +354,10 @@ export function SearchPageClient() {
             </div>
           </form>
 
-          {/* Lifestyle suggestion chips */}
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            {LIFESTYLE_SUGGESTIONS.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => handleSuggestionClick(suggestion)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 bg-card hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-300 text-xs text-muted-foreground transition-all duration-150"
-              >
-                <Sparkles className="w-3 h-3 text-emerald-500/60" />
-                {suggestion}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* ── Advanced Filters (collapsible) ────────────────────────────── */}
-        <div className="max-w-3xl mx-auto mb-8">
+        <div className="max-w-3xl mx-auto mb-5">
           <button
             type="button"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}

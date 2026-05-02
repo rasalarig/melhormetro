@@ -44,7 +44,7 @@ export default async function ImoveisPage() {
   const properties = await getProperties();
 
   return (
-    <div className="pt-16 pb-16 px-4">
+    <div className="pt-20 pb-10 px-4">
       <div className="container mx-auto max-w-6xl">
         <PropertyListClient properties={JSON.parse(JSON.stringify(properties))} />
       </div>

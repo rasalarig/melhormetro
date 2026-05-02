@@ -123,8 +123,7 @@ export default function EditarImovelPage() {
   const [linkUrl, setLinkUrl] = useState("");
 
   // Condominium
-  const [condominiumId, setCondominiumId] = useState<number | null>(null);
-  const [condominiums, setCondominiums] = useState<{ id: number; name: string }[]>([]);
+  const [condominiumName, setCondominiumName] = useState<string>("");
 
   // IBGE state/city
   const [ibgeStates, setIbgeStates] = useState<{ sigla: string; nome: string }[]>([]);
@@ -209,7 +208,7 @@ export default function EditarImovelPage() {
         setSelectedChars(Array.isArray(chars) ? chars : []);
 
         // Extra fields
-        if (data.condominium_id) setCondominiumId(data.condominium_id);
+        if (data.condominium_name) setCondominiumName(data.condominium_name);
         if (data.allow_resale) setAllowResale(true);
         if (data.resale_commission_percent != null) setResaleCommissionPercent(String(data.resale_commission_percent));
         if (data.resale_terms) setResaleTerms(data.resale_terms);
@@ -274,13 +273,11 @@ export default function EditarImovelPage() {
     propertyType === "casa" || propertyType === "apartamento" || propertyType === "casa_condominio";
   const isCondoType = propertyType === "casa_condominio" || propertyType === "terreno_condominio";
 
-  // Fetch condominiums for linking
+  // Reset condominium name when switching away from condo type
   useEffect(() => {
-    if (!isCondoType) return;
-    fetch("/api/condominiums")
-      .then((r) => r.json())
-      .then((d) => setCondominiums(d.condominiums || []))
-      .catch(() => {});
+    if (!isCondoType) {
+      setCondominiumName("");
+    }
   }, [isCondoType]);
 
   function toggleCharacteristic(char: string) {
@@ -498,7 +495,7 @@ export default function EditarImovelPage() {
           resale_commission_percent: allowResale && resaleCommissionPercent ? Math.min(100, Math.max(0, Number(resaleCommissionPercent))) : null,
           resale_terms: allowResale && resaleTerms.trim() ? resaleTerms.trim() : null,
           facade_orientation: facadeOrientation || null,
-          condominium_id: isCondoType ? condominiumId : null,
+          condominium_name: isCondoType && condominiumName.trim() ? condominiumName.trim() : null,
           listing_as: listingAs || null,
           is_exclusive: listingAs === "proprietario" ? isExclusive : false,
           exclusivity_months: listingAs === "proprietario" && isExclusive ? Number(exclusivityMonths) : null,
@@ -1046,14 +1043,20 @@ export default function EditarImovelPage() {
             </div>
           </div>
 
-          {/* Condominium selector */}
+          {/* Condominium name field */}
           {isCondoType && (
             <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
               <h2 className="text-base font-semibold text-foreground border-b border-border/30 pb-2">Condomínio</h2>
-              <select value={condominiumId || ""} onChange={(e) => setCondominiumId(e.target.value ? Number(e.target.value) : null)} className={inputClass}>
-                <option value="">Selecione o condomínio (opcional)</option>
-                {condominiums.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-              </select>
+              <div>
+                <label className={labelClass}>Nome do condomínio (opcional)</label>
+                <input
+                  type="text"
+                  value={condominiumName}
+                  onChange={(e) => setCondominiumName(e.target.value)}
+                  placeholder="Ex: Residencial das Flores"
+                  className={inputClass}
+                />
+              </div>
             </div>
           )}
 

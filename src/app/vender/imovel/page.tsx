@@ -131,8 +131,7 @@ export default function CadastrarImovelPage() {
   const [facadeOrientation, setFacadeOrientation] = useState("");
 
   // Condominium
-  const [condominiumId, setCondominiumId] = useState<number | null>(null);
-  const [condominiums, setCondominiums] = useState<Array<{ id: number; name: string; city: string | null }>>([]);
+  const [condominiumName, setCondominiumName] = useState<string>("");
 
   // Resale / recomercialização
   const [allowResale, setAllowResale] = useState(false);
@@ -225,14 +224,8 @@ export default function CadastrarImovelPage() {
 
   useEffect(() => {
     const isCondoNow = propertyType === "casa_condominio" || propertyType === "terreno_condominio";
-    if (isCondoNow && condominiums.length === 0) {
-      fetch("/api/condominiums")
-        .then((r) => r.json())
-        .then((data) => setCondominiums(data.condominiums || []))
-        .catch(console.error);
-    }
     if (!isCondoNow) {
-      setCondominiumId(null);
+      setCondominiumName("");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyType]);
@@ -627,7 +620,7 @@ export default function CadastrarImovelPage() {
           resale_commission_percent: allowResale && resaleCommissionPercent ? Number(resaleCommissionPercent) : null,
           resale_terms: allowResale && resaleTerms.trim() ? resaleTerms.trim() : null,
           facade_orientation: facadeOrientation || null,
-          condominium_id: isCondoType ? condominiumId : null,
+          condominium_name: isCondoType && condominiumName.trim() ? condominiumName.trim() : null,
           listing_as: listingAs || null,
           is_exclusive: listingAs === "proprietario" ? isExclusive : false,
           exclusivity_months: listingAs === "proprietario" && isExclusive ? Number(exclusivityMonths) : null,
@@ -1103,27 +1096,17 @@ export default function CadastrarImovelPage() {
               </select>
             </div>
 
-            {/* Condominium selector */}
+            {/* Condominium text field */}
             {isCondoType && (
               <div>
-                <label className={labelClass}>Condomínio</label>
-                <select
-                  value={condominiumId ?? ""}
-                  onChange={(e) => setCondominiumId(e.target.value ? Number(e.target.value) : null)}
+                <label className={labelClass}>Nome do condomínio (opcional)</label>
+                <input
+                  type="text"
+                  value={condominiumName}
+                  onChange={(e) => setCondominiumName(e.target.value)}
+                  placeholder="Ex: Residencial das Flores"
                   className={inputClass}
-                >
-                  <option value="">— Selecionar condomínio —</option>
-                  {condominiums.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}{c.city ? ` — ${c.city}` : ""}
-                    </option>
-                  ))}
-                </select>
-                {condominiums.length === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Nenhum condomínio cadastrado ainda.
-                  </p>
-                )}
+                />
               </div>
             )}
 

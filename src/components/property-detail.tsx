@@ -640,24 +640,40 @@ export function PropertyDetail({ property }: PropertyProps) {
                 </Card>
               )}
 
-              {/* Condominium link */}
-              {property.condominium_id && property.condominium_slug && (
-                <Link href={`/condominios/${property.condominium_slug}`}>
-                  <Card className="p-4 bg-card border-emerald-500/20 hover:border-emerald-500/40 transition-colors cursor-pointer">
+              {/* Condominium display */}
+              {(property.condominium_name || (property.condominium_id && property.condominium_slug)) && (
+                property.condominium_slug ? (
+                  <Link href={`/condominios/${property.condominium_slug}`}>
+                    <Card className="p-4 bg-card border-emerald-500/20 hover:border-emerald-500/40 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                          <Building2 className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-muted-foreground">Este imóvel está no</p>
+                          <p className="text-sm font-semibold text-emerald-400 truncate">
+                            {property.condominium_name || "Condomínio"}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      </div>
+                    </Card>
+                  </Link>
+                ) : (
+                  <Card className="p-4 bg-card border-emerald-500/20">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                         <Building2 className="w-4 h-4 text-emerald-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Este imóvel está no</p>
+                        <p className="text-xs text-muted-foreground">Condomínio</p>
                         <p className="text-sm font-semibold text-emerald-400 truncate">
-                          {property.condominium_name || "Condomínio"}
+                          {property.condominium_name}
                         </p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                     </div>
                   </Card>
-                </Link>
+                )
               )}
             </div>
           </div>

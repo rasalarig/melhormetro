@@ -1,6 +1,6 @@
 import { AdminPropertyList } from "@/components/admin-property-list";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Megaphone, Settings, MessageCircle, Shield, ShieldAlert, Eye, Building2, BarChart3 } from "lucide-react";
+import { Plus, Users, Megaphone, Settings, MessageCircle, Shield, ShieldAlert, Eye, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { getAll, getOne } from "@/lib/db";
 
@@ -104,12 +104,6 @@ export default async function AdminPage() {
               <Button variant="outline" size="sm" className="w-full border-violet-500/30 text-violet-400 hover:bg-violet-500/10 text-xs px-2">
                 <Eye className="w-4 h-4 sm:mr-1.5 shrink-0" />
                 <span className="hidden sm:inline">Moderação</span>
-              </Button>
-            </Link>
-            <Link href="/admin/condominios">
-              <Button variant="outline" size="sm" className="w-full border-teal-500/30 text-teal-400 hover:bg-teal-500/10 text-xs px-2">
-                <Building2 className="w-4 h-4 sm:mr-1.5 shrink-0" />
-                <span className="hidden sm:inline">Condos</span>
               </Button>
             </Link>
             <Link href="/admin/analytics">

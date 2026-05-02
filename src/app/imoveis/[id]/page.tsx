@@ -56,7 +56,8 @@ interface TourMediaRow {
 async function getProperty(id: string) {
   const property = await getOne(
     `SELECT p.*, s.user_id as seller_user_id,
-            c.name as condominium_name, c.slug as condominium_slug,
+            COALESCE(p.condominium_name, c.name) as condominium_name,
+            c.slug as condominium_slug,
             up.creci as lister_creci, up.trade_name as lister_trade_name
      FROM properties p
      LEFT JOIN sellers s ON p.seller_id = s.id

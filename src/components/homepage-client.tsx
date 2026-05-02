@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Home, Building2, Mountain, Store, Trees, Shield, Bot, Video, Phone, CheckCircle, ArrowRight, Loader2, Film, Sparkles } from "lucide-react";
+import { Search, Home, Building2, Mountain, Store, Trees, Shield, Bot, ArrowRight, Loader2, Film, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PropertyCard } from "@/components/property-card";
 import { useAuth } from "@/components/auth-provider";
@@ -38,36 +38,6 @@ const CATEGORIES = [
   { label: "Condomínios", type: "casa_condominio", icon: Shield },
 ];
 
-const HIGHLIGHTS = [
-  {
-    icon: Bot,
-    title: "Busca com IA",
-    description: "Descreva o que procura e a IA encontra para você",
-    color: "from-emerald-500/20 to-teal-600/20",
-    iconColor: "text-emerald-400",
-  },
-  {
-    icon: Video,
-    title: "Tours em Vídeo",
-    description: "Conheça imóveis sem sair de casa com nossos tours em vídeo",
-    color: "from-teal-500/20 to-cyan-600/20",
-    iconColor: "text-teal-400",
-  },
-  {
-    icon: Phone,
-    title: "Contato Direto",
-    description: "Fale diretamente com vendedores, sem intermediários",
-    color: "from-cyan-500/20 to-sky-600/20",
-    iconColor: "text-cyan-400",
-  },
-  {
-    icon: CheckCircle,
-    title: "Imóveis Verificados",
-    description: "Todos os anúncios são moderados antes de publicar",
-    color: "from-green-500/20 to-emerald-600/20",
-    iconColor: "text-green-400",
-  },
-];
 
 function getImageUrl(images: PropertyImage[]): string | undefined {
   if (!images || images.length === 0) return undefined;
@@ -202,39 +172,6 @@ export function HomepageCategories() {
   );
 }
 
-export function HomepageHighlights() {
-  return (
-    <section className="py-14 md:py-18">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            Por que o MelhorMetro?
-          </h2>
-          <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base">
-            Uma plataforma moderna pensada para comprador e vendedor
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {HIGHLIGHTS.map(({ icon: Icon, title, description, color, iconColor }) => (
-            <div
-              key={title}
-              className="rounded-2xl border border-border/50 bg-card p-6 flex flex-col gap-4 hover:border-emerald-500/30 transition-all duration-200"
-            >
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center`}>
-                <Icon className={`w-6 h-6 ${iconColor}`} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">{title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export function HomepageFeaturedProperties() {
   const [properties, setProperties] = useState<Property[]>([]);

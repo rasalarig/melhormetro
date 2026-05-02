@@ -111,8 +111,15 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ownership = await verifyOwnership(params.id);
-    if (ownership.error) return ownership.error;
+    // Admin can edit any property
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    }
+    if (!user.is_admin) {
+      const ownership = await verifyOwnership(params.id);
+      if (ownership.error) return ownership.error;
+    }
 
     const body = await request.json();
     const {
@@ -139,7 +146,7 @@ export async function PUT(
       resale_commission_percent,
       resale_terms,
       facade_orientation,
-      condominium_id,
+      condominium_name,
       listing_as,
       is_exclusive,
       exclusivity_months,
@@ -178,7 +185,7 @@ export async function PUT(
         resale_commission_percent = COALESCE($19, resale_commission_percent),
         resale_terms = COALESCE($20, resale_terms),
         facade_orientation = COALESCE($21, facade_orientation),
-        condominium_id = CASE WHEN $22::integer IS NOT NULL THEN $22::integer ELSE condominium_id END,
+        condominium_name = CASE WHEN $22::text IS NOT NULL THEN $22::text ELSE condominium_name END,
         listing_as = COALESCE($24, listing_as),
         is_exclusive = COALESCE($25, is_exclusive),
         exclusivity_months = COALESCE($26, exclusivity_months),
@@ -207,7 +214,7 @@ export async function PUT(
         resale_commission_percent !== undefined ? resale_commission_percent : null,
         resale_terms !== undefined ? resale_terms : null,
         facade_orientation !== undefined ? (facade_orientation || null) : null,
-        condominium_id !== undefined ? condominium_id : null,
+        condominium_name !== undefined ? (condominium_name || null) : null,
         params.id,
         listing_as !== undefined ? (listing_as || null) : null,
         is_exclusive !== undefined ? is_exclusive : null,

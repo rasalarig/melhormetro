@@ -30,6 +30,7 @@ export interface ScoredProperty {
   characteristics?: string | string[] | null;
   details?: string | Record<string, unknown> | null;
   condominium_id?: number | null;
+  condominium_name?: string | null;
   images?: { filename?: string }[] | null;
   facade_orientation?: string | null;
 }
@@ -277,7 +278,7 @@ function scorePriceVsMarket(property: ScoredProperty): ValuationFactor {
       name: "Preço vs Mercado Regional",
       score: 12,
       maxScore: 25,
-      description: `Preço ou área não informados — pontuação neutra. Média FipeZap para ${typeLabel} em ${cityLabel}: R$\u00A0${marketAvg.toLocaleString("pt-BR")}/m² (Fonte: FipeZap 2024).`,
+      description: `Preço ou área não informados — pontuação neutra. Média FipeZap para ${typeLabel} em ${cityLabel}: R$\u00A0${marketAvg.toLocaleString("pt-BR")}/m² (Fonte: FipeZap 2024). Dica: preencha o preço e a área do imóvel para calcular o posicionamento de mercado correto.`,
     };
   }
 
@@ -286,25 +287,31 @@ function scorePriceVsMarket(property: ScoredProperty): ValuationFactor {
 
   let score: number;
   let qualifier: string;
+  let tip: string;
 
   if (ratio <= 0.7) {
     score = 25;
     qualifier = "excelente negócio — bem abaixo da média";
+    tip = "";
   } else if (ratio <= 0.9) {
     score = 20;
     qualifier = "bom negócio — abaixo da média";
+    tip = "";
   } else if (ratio <= 1.1) {
     score = 15;
     qualifier = "em linha com o mercado";
+    tip = "Dica: um preço ligeiramente abaixo do mercado pode elevar este score e acelerar a venda.";
   } else if (ratio <= 1.3) {
     score = 10;
     qualifier = "acima da média de mercado";
+    tip = "Dica: o preço está acima da média regional. Reveja a precificação para melhorar este score.";
   } else {
     score = 5;
     qualifier = "bem acima da média de mercado";
+    tip = "Dica: o preço está significativamente acima do mercado. Considere ajustá-lo para ganhar competitividade.";
   }
 
-  const description = `R$\u00A0${Math.round(actualPpm).toLocaleString("pt-BR")}/m² vs média de R$\u00A0${marketAvg.toLocaleString("pt-BR")}/m² em ${cityLabel} para ${typeLabel} — ${qualifier}. Fonte: FipeZap 2024.`;
+  const description = `R$\u00A0${Math.round(actualPpm).toLocaleString("pt-BR")}/m² vs média de R$\u00A0${marketAvg.toLocaleString("pt-BR")}/m² em ${cityLabel} para ${typeLabel} — ${qualifier}. Fonte: FipeZap 2024.${tip ? ` ${tip}` : ""}`;
 
   return { name: "Preço vs Mercado Regional", score, maxScore: 25, description };
 }
@@ -331,8 +338,8 @@ function scoreAppreciation(property: ScoredProperty): ValuationFactor {
 
   const isNational = APPRECIATION_RATES[cityLower] == null;
   const sourceNote = isNational
-    ? `Usando média nacional de ${NATIONAL_APPRECIATION}% (Fonte: FipeZap 2024).`
-    : `Valorização de ${rate}% ao ano em ${cityLabel} (Fonte: FipeZap 2024).`;
+    ? `Usando média nacional de ${NATIONAL_APPRECIATION}% ao ano (Fonte: FipeZap 2024). A localização do imóvel influencia diretamente este fator — cidades com alta demanda e infraestrutura valorizam mais.`
+    : `${cityLabel} apresenta valorização de ${rate}% ao ano (Fonte: FipeZap 2024). Este fator reflete o crescimento histórico de preços na cidade e não pode ser alterado diretamente pelo anunciante.`;
 
   return {
     name: "Valorização da Região",
@@ -349,36 +356,49 @@ function scoreLocation(property: ScoredProperty): ValuationFactor {
   let score = 0;
   const parts: string[] = [];
 
+  const missingParts: string[] = [];
+
   if (property.latitude != null && property.longitude != null) {
     score += 3;
-    parts.push("coordenadas GPS disponíveis");
+    parts.push("coordenadas GPS disponíveis (+3)");
+  } else {
+    missingParts.push("o endereço será georreferenciado automaticamente ao salvar");
   }
 
-  if (property.condominium_id) {
+  if (property.condominium_id || property.condominium_name) {
     score += 7;
-    parts.push("condomínio cadastrado na plataforma");
+    parts.push(`condomínio informado: ${property.condominium_name || "vinculado"} (+7)`);
   } else if (property.type === "casa_condominio" || property.type === "terreno_condominio") {
     score += 4;
-    parts.push("tipo condomínio");
+    parts.push("tipo condomínio (+4)");
+    missingParts.push("informe o nome do condomínio para ganhar +3 pontos extras");
   }
 
   if (MAJOR_CITIES.has(cityLower)) {
     score += 5;
-    parts.push("capital/grande metrópole (Fonte: IBGE)");
+    parts.push("capital/grande metrópole (+5, Fonte: IBGE)");
   } else if (GROWING_INTERIOR_CITIES.has(cityLower)) {
     score += 3;
-    parts.push("cidade interior em crescimento (Fonte: IBGE/SECOVI)");
+    parts.push("cidade interior em crescimento (+3, Fonte: IBGE/SECOVI)");
   }
 
   if (property.neighborhood) {
     score += 2;
-    parts.push("bairro especificado");
+    parts.push("bairro informado (+2)");
+  } else {
+    missingParts.push("informe o bairro para ganhar +2 pontos");
   }
 
-  const description =
-    parts.length > 0
-      ? `Infraestrutura e localização: ${parts.join(", ")}.`
-      : "Localização sem diferenciais mapeados.";
+  let description = "";
+  if (parts.length > 0) {
+    description = `Pontos positivos: ${parts.join(", ")}.`;
+  }
+  if (missingParts.length > 0) {
+    description += (description ? " " : "") + `Dicas para melhorar: ${missingParts.join("; ")}.`;
+  }
+  if (!description) {
+    description = "Localização sem diferenciais mapeados. Preencha o bairro e o endereço completo para ganhar pontos.";
+  }
 
   return { name: "Infraestrutura e Localização", score: Math.min(score, 20), maxScore: 20, description };
 }
@@ -450,10 +470,26 @@ function scoreCharacteristics(property: ScoredProperty): ValuationFactor {
     parts.push("rua asfaltada");
   }
 
-  const description =
-    parts.length > 0
-      ? `Características presentes: ${parts.join(", ")}.`
-      : "Sem características diferenciais registradas.";
+  const missingCharParts: string[] = [];
+  if (!hasPool) missingCharParts.push("piscina (+4)");
+  if (!isGated) missingCharParts.push("condomínio fechado (+4)");
+  if (property.area <= 200) missingCharParts.push("área acima de 200m² (+3)");
+  if (bedrooms < 3) missingCharParts.push("3 ou mais quartos (+3)");
+  if (bathrooms < 2) missingCharParts.push("2 ou mais banheiros (+2)");
+  if (garage < 1) missingCharParts.push("garagem (+2)");
+  if (!isPaved) missingCharParts.push("rua asfaltada (+2)");
+
+  let description = "";
+  if (parts.length > 0) {
+    description = `Características presentes: ${parts.join(", ")}.`;
+  }
+  if (missingCharParts.length > 0 && Math.min(score, 20) < 20) {
+    const topMissing = missingCharParts.slice(0, 3);
+    description += (description ? " " : "") + `Dica: adicione nas características — ${topMissing.join(", ")} — para aumentar este score.`;
+  }
+  if (!description) {
+    description = "Sem características diferenciais registradas. Dica: adicione piscina, garagem, número de quartos e banheiros para ganhar pontos.";
+  }
 
   return {
     name: "Características do Imóvel",
@@ -468,46 +504,65 @@ function scoreCharacteristics(property: ScoredProperty): ValuationFactor {
 function scoreListingQuality(property: ScoredProperty): ValuationFactor {
   let score = 0;
   const parts: string[] = [];
+  const missingListingParts: string[] = [];
 
   const desc = property.description || "";
   if (desc.length > 0) {
     score += 2;
-    parts.push("descrição presente");
+    parts.push("descrição presente (+2)");
+  } else {
+    missingListingParts.push("adicione uma descrição ao anúncio (+2)");
   }
   if (desc.length > 200) {
     score += 2;
-    parts.push("descrição detalhada");
+    parts.push("descrição detalhada (+2)");
+  } else if (desc.length > 0) {
+    missingListingParts.push(`escreva pelo menos 200 caracteres na descrição para ganhar +2 pontos (atual: ${desc.length})`);
   }
 
   const images = property.images || [];
   if (images.length >= 5) {
     score += 4;
-    parts.push(`${images.length} fotos`);
+    parts.push(`${images.length} fotos (+4)`);
   } else if (images.length > 0) {
     score += 1;
-    parts.push(`${images.length} foto(s)`);
+    parts.push(`${images.length} foto(s) (+1)`);
+    missingListingParts.push(`adicione mais ${5 - images.length} foto(s) para ganhar +3 pontos extras`);
+  } else {
+    missingListingParts.push("adicione pelo menos 5 fotos para ganhar +4 pontos");
   }
 
   const hasVideo = images.some((img) => isVideoUrl(img.filename || ""));
   if (hasVideo) {
     score += 3;
-    parts.push("vídeo");
+    parts.push("vídeo (+3)");
+  } else {
+    missingListingParts.push("adicione um vídeo ou tour virtual para ganhar +3 pontos");
   }
 
   if (property.facade_orientation) {
     score += 2;
-    parts.push(`orientação da fachada (${property.facade_orientation})`);
+    parts.push(`orientação da fachada: ${property.facade_orientation} (+2)`);
+  } else {
+    missingListingParts.push("informe a orientação solar da fachada (+2)");
   }
 
-  if (property.condominium_id) {
+  if (property.condominium_id || property.condominium_name) {
     score += 2;
-    parts.push("condomínio cadastrado na plataforma");
+    parts.push(`condomínio: ${property.condominium_name || "vinculado"} (+2)`);
   }
 
-  const description =
-    parts.length > 0
-      ? `Qualidade do anúncio: ${parts.join(", ")}.`
-      : "Anúncio com poucas informações.";
+  let description = "";
+  if (parts.length > 0) {
+    description = `O anúncio tem: ${parts.join(", ")}.`;
+  }
+  if (missingListingParts.length > 0 && Math.min(score, 15) < 15) {
+    const topMissing = missingListingParts.slice(0, 2);
+    description += (description ? " " : "") + `Dica: ${topMissing.join("; ")}.`;
+  }
+  if (!description) {
+    description = "Anúncio com poucas informações. Adicione descrição, fotos e vídeo para melhorar este score.";
+  }
 
   return {
     name: "Qualidade do Anúncio",

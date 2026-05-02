@@ -468,6 +468,15 @@ export default function AdminAnalyticsPage() {
     return () => clearInterval(interval);
   }, [user, fetchActive]);
 
+  // Auto-refresh all analytics every 60s
+  useEffect(() => {
+    if (!user?.is_admin) return;
+    const interval = setInterval(() => {
+      fetchAnalytics();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [user, fetchAnalytics]);
+
   if (authLoading) {
     return (
       <div className="pt-16 pb-16 px-4 flex items-center justify-center min-h-screen">

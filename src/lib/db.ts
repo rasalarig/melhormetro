@@ -366,6 +366,14 @@ export async function initDB() {
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS is_exclusive BOOLEAN DEFAULT FALSE;
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS exclusivity_months INTEGER;
     ALTER TABLE properties ADD COLUMN IF NOT EXISTS listing_commission_rate DECIMAL(5,2);
+
+    -- Feature: replace condominium dropdown with free text field
+    ALTER TABLE properties ADD COLUMN IF NOT EXISTS condominium_name TEXT;
+
+    -- Migrate existing data: copy name from condominiums table to properties
+    UPDATE properties p SET condominium_name = c.name
+    FROM condominiums c WHERE p.condominium_id = c.id
+    AND p.condominium_name IS NULL AND p.condominium_id IS NOT NULL;
   `);
 }
 
