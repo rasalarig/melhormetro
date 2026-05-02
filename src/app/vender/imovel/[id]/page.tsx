@@ -270,6 +270,10 @@ export default function EditarImovelPage() {
       .catch(() => {});
   }, [state]);
 
+  const showDetails =
+    propertyType === "casa" || propertyType === "apartamento" || propertyType === "casa_condominio";
+  const isCondoType = propertyType === "casa_condominio" || propertyType === "terreno_condominio";
+
   // Fetch condominiums for linking
   useEffect(() => {
     if (!isCondoType) return;
@@ -278,10 +282,6 @@ export default function EditarImovelPage() {
       .then((d) => setCondominiums(d.condominiums || []))
       .catch(() => {});
   }, [isCondoType]);
-
-  const showDetails =
-    propertyType === "casa" || propertyType === "apartamento" || propertyType === "casa_condominio";
-  const isCondoType = propertyType === "casa_condominio" || propertyType === "terreno_condominio";
 
   function toggleCharacteristic(char: string) {
     setSelectedChars((prev) =>
