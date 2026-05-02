@@ -121,9 +121,6 @@ export function Navbar() {
               <Link href="/imoveis" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
                 <Home className="w-4 h-4 text-muted-foreground" /> Imóveis
               </Link>
-              <Link href="/condominios" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
-                <Building2 className="w-4 h-4 text-muted-foreground" /> Condomínios
-              </Link>
               <Link href="/busca" className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-accent/50 text-sm" onClick={() => setMobileOpen(false)}>
                 <Search className="w-4 h-4 text-muted-foreground" /> Busca Inteligente
               </Link>
@@ -248,10 +245,6 @@ export function Navbar() {
                   <Link href="/imoveis" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors" onClick={() => exploreDd.setOpen(false)}>
                     <Home className="w-4 h-4 text-emerald-400" />
                     <div><p className="font-medium">Imóveis</p><p className="text-[11px] text-muted-foreground">Todos os imóveis</p></div>
-                  </Link>
-                  <Link href="/condominios" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors" onClick={() => exploreDd.setOpen(false)}>
-                    <Building2 className="w-4 h-4 text-blue-400" />
-                    <div><p className="font-medium">Condomínios</p><p className="text-[11px] text-muted-foreground">Dossiês completos</p></div>
                   </Link>
                   <Link href="/tours" className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors" onClick={() => exploreDd.setOpen(false)}>
                     <Film className="w-4 h-4 text-violet-400" />
