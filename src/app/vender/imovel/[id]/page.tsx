@@ -611,8 +611,8 @@ export default function EditarImovelPage() {
             const autonomoProfile = profiles.find((p) => p.profile_type === "autonomo");
             const imobiliariaProfile = profiles.find((p) => p.profile_type === "imobiliaria");
 
-            const inputClass = "w-full rounded-lg border border-border/50 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors";
-            const labelClass = "block text-sm font-medium text-foreground mb-1.5";
+            const profileInputClass = "w-full rounded-lg border border-border/50 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors";
+            const profileLabelClass = "block text-sm font-medium text-foreground mb-1.5";
 
             return (
               <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
